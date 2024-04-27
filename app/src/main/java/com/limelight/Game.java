@@ -1,18 +1,40 @@
 package com.limelight;
 
 
+import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
+import android.app.Activity;
+import android.app.PictureInPictureParams;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
+import android.content.res.Configuration;
+import android.graphics.Point;
+import android.graphics.Rect;
+import android.media.AudioManager;
+import android.net.ConnectivityManager;
+import android.net.wifi.WifiManager;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.util.Rational;
+import android.view.Display;
+import android.view.InputDevice;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.view.Surface;
+import android.view.SurfaceHolder;
+import android.view.View;
+import android.view.View.OnSystemUiVisibilityChangeListener;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.TextView;
+import android.widget.Toast;
+
 import com.limelight.binding.PlatformBinding;
 import com.limelight.binding.audio.AndroidAudioRenderer;
-import com.limelight.binding.input.ControllerHandler;
-import com.limelight.binding.input.KeyboardTranslator;
-import com.limelight.binding.input.capture.InputCaptureManager;
-import com.limelight.binding.input.capture.InputCaptureProvider;
-import com.limelight.binding.input.touch.AbsoluteTouchContext;
-import com.limelight.binding.input.touch.RelativeTouchContext;
-import com.limelight.binding.input.driver.UsbDriverService;
-import com.limelight.binding.input.evdev.EvdevListener;
-import com.limelight.binding.input.touch.TouchContext;
-import com.limelight.binding.input.virtual_controller.VirtualController;
 import com.limelight.binding.video.CrashListener;
 import com.limelight.binding.video.MediaCodecDecoderRenderer;
 import com.limelight.binding.video.MediaCodecHelper;
@@ -23,61 +45,15 @@ import com.limelight.nvstream.StreamConfiguration;
 import com.limelight.nvstream.http.ComputerDetails;
 import com.limelight.nvstream.http.NvApp;
 import com.limelight.nvstream.http.NvHTTP;
-import com.limelight.nvstream.input.ControllerPacket;
-import com.limelight.nvstream.input.KeyboardPacket;
-import com.limelight.nvstream.input.MouseButtonPacket;
 import com.limelight.nvstream.jni.MoonBridge;
 import com.limelight.preferences.GlPreferences;
 import com.limelight.preferences.PreferenceConfiguration;
-import com.limelight.ui.GameGestures;
 import com.limelight.ui.StreamView;
 import com.limelight.utils.Dialog;
 import com.limelight.utils.ServerHelper;
 import com.limelight.utils.ShortcutHelper;
 import com.limelight.utils.SpinnerDialog;
 import com.limelight.utils.UiHelper;
-
-import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
-import android.app.Activity;
-import android.app.PictureInPictureParams;
-import android.app.Service;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.content.SharedPreferences;
-import android.content.pm.ActivityInfo;
-import android.content.pm.PackageManager;
-import android.content.res.Configuration;
-import android.graphics.Point;
-import android.graphics.Rect;
-import android.hardware.input.InputManager;
-import android.media.AudioManager;
-import android.net.ConnectivityManager;
-import android.net.wifi.WifiManager;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.IBinder;
-import android.util.Rational;
-import android.view.Display;
-import android.view.InputDevice;
-import android.view.KeyCharacterMap;
-import android.view.KeyEvent;
-import android.view.MotionEvent;
-import android.view.Surface;
-import android.view.SurfaceHolder;
-import android.view.View;
-import android.view.View.OnGenericMotionListener;
-import android.view.View.OnSystemUiVisibilityChangeListener;
-import android.view.View.OnTouchListener;
-import android.view.Window;
-import android.view.WindowManager;
-import android.widget.FrameLayout;
-import android.view.inputmethod.InputMethodManager;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import java.io.ByteArrayInputStream;
 import java.lang.reflect.InvocationTargetException;
@@ -89,29 +65,8 @@ import java.util.Locale;
 
 
 public class Game extends Activity implements SurfaceHolder.Callback,
-        OnGenericMotionListener, OnTouchListener, NvConnectionListener, EvdevListener,
-        OnSystemUiVisibilityChangeListener, GameGestures, StreamView.InputCallbacks,
-        PerfOverlayListener, UsbDriverService.UsbDriverStateListener, View.OnKeyListener {
-    private int lastButtonState = 0;
+NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
 
-    // Only 2 touches are supported
-    private final TouchContext[] touchContextMap = new TouchContext[2];
-    private long threeFingerDownTime = 0;
-
-    private static final int REFERENCE_HORIZ_RES = 1280;
-    private static final int REFERENCE_VERT_RES = 720;
-
-    private static final int STYLUS_DOWN_DEAD_ZONE_DELAY = 100;
-    private static final int STYLUS_DOWN_DEAD_ZONE_RADIUS = 20;
-
-    private static final int STYLUS_UP_DEAD_ZONE_DELAY = 150;
-    private static final int STYLUS_UP_DEAD_ZONE_RADIUS = 50;
-
-    private static final int THREE_FINGER_TAP_THRESHOLD = 300;
-
-    private ControllerHandler controllerHandler;
-    private KeyboardTranslator keyboardTranslator;
-    private VirtualController virtualController;
 
     private PreferenceConfiguration prefConfig;
     private SharedPreferences tombstonePrefs;
@@ -129,18 +84,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private String appName;
     private NvApp app;
     private float desiredRefreshRate;
-
-    private InputCaptureProvider inputCaptureProvider;
-    private int modifierFlags = 0;
-    private boolean grabbedInput = true;
-    private boolean cursorVisible = false;
-    private boolean waitingForAllModifiersUp = false;
-    private int specialKeyCode = KeyEvent.KEYCODE_UNKNOWN;
     private StreamView streamView;
-    private long lastAbsTouchUpTime = 0;
-    private long lastAbsTouchDownTime = 0;
-    private float lastAbsTouchUpX, lastAbsTouchUpY;
-    private float lastAbsTouchDownX, lastAbsTouchDownY;
 
     private boolean isHidingOverlays;
     private TextView notificationOverlayView;
@@ -154,21 +98,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private WifiManager.WifiLock lowLatencyWifiLock;
 
     private boolean connectedToUsbDriverService = false;
-    private ServiceConnection usbDriverServiceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-            UsbDriverService.UsbDriverBinder binder = (UsbDriverService.UsbDriverBinder) iBinder;
-            binder.setListener(controllerHandler);
-            binder.setStateListener(Game.this);
-            binder.start();
-            connectedToUsbDriverService = true;
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName componentName) {
-            connectedToUsbDriverService = false;
-        }
-    };
 
     public static final String EXTRA_HOST = "Host";
     public static final String EXTRA_PORT = "Port";
@@ -237,16 +166,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         // Listen for non-touch events on the game surface
         streamView = findViewById(R.id.surfaceView);
-        streamView.setOnGenericMotionListener(this);
-        streamView.setOnKeyListener(this);
-        streamView.setInputCallbacks(this);
+
 
         // Listen for touch events on the background touch view to enable trackpad mode
         // to work on areas outside of the StreamView itself. We use a separate View
         // for this rather than just handling it at the Activity level, because that
         // allows proper touch splitting, which the OSC relies upon.
         View backgroundTouchView = findViewById(R.id.backgroundTouchView);
-        backgroundTouchView.setOnTouchListener(this);
+
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             // Request unbuffered input event dispatching for all input classes we handle here.
@@ -272,15 +199,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         performanceOverlayView = findViewById(R.id.performanceOverlay);
 
-        inputCaptureProvider = InputCaptureManager.getInputCaptureProvider(this, this);
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            streamView.setOnCapturedPointerListener(new View.OnCapturedPointerListener() {
-                @Override
-                public boolean onCapturedPointer(View view, MotionEvent motionEvent) {
-                    return handleMotionEvent(view, motionEvent);
-                }
-            });
+
         }
 
         // Warn the user if they're on a metered connection
@@ -424,18 +344,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             }
         }
 
-        int gamepadMask = ControllerHandler.getAttachedControllerMask(this);
-        if (!prefConfig.multiController) {
-            // Always set gamepad 1 present for when multi-controller is
-            // disabled for games that don't properly support detection
-            // of gamepads removed and replugged at runtime.
-            gamepadMask = 1;
-        }
-        if (prefConfig.onscreenController) {
-            // If we're using OSC, always set at least gamepad 1.
-            gamepadMask |= 1;
-        }
-
         // Set to the optimal mode for streaming
         float displayRefreshRate = prepareDisplayForRendering();
         LimeLog.info("Display refresh rate: "+displayRefreshRate);
@@ -473,7 +381,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 .setMaxPacketSize(1392)
                 .setRemoteConfiguration(StreamConfiguration.STREAM_CFG_AUTO) // NvConnection will perform LAN and VPN detection
                 .setSupportedVideoFormats(supportedVideoFormats)
-                .setAttachedGamepadMask(gamepadMask)
                 .setClientRefreshRateX100((int)(displayRefreshRate * 100))
                 .setAudioConfiguration(prefConfig.audioConfiguration)
                 .setColorSpace(decoderRenderer.getPreferredColorSpace())
@@ -486,38 +393,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 new ComputerDetails.AddressTuple(host, port),
                 httpsPort, uniqueId, config,
                 PlatformBinding.getCryptoProvider(this), serverCert);
-        controllerHandler = new ControllerHandler(this, conn, this, prefConfig);
-        keyboardTranslator = new KeyboardTranslator();
-
-        InputManager inputManager = (InputManager) getSystemService(Context.INPUT_SERVICE);
-        inputManager.registerInputDeviceListener(keyboardTranslator, null);
-
-        // Initialize touch contexts
-        for (int i = 0; i < touchContextMap.length; i++) {
-            if (!prefConfig.touchscreenTrackpad) {
-                touchContextMap[i] = new AbsoluteTouchContext(conn, i, streamView);
-            }
-            else {
-                touchContextMap[i] = new RelativeTouchContext(conn, i,
-                        REFERENCE_HORIZ_RES, REFERENCE_VERT_RES,
-                        streamView, prefConfig);
-            }
-        }
-
-        if (prefConfig.onscreenController) {
-            // create virtual onscreen controller
-            virtualController = new VirtualController(controllerHandler,
-                    (FrameLayout)streamView.getParent(),
-                    this);
-            virtualController.refreshLayout();
-            virtualController.show();
-        }
-
-        if (prefConfig.usbDriver) {
-            // Start the USB driver
-            bindService(new Intent(this, UsbDriverService.class),
-                    usbDriverServiceConnection, Service.BIND_AUTO_CREATE);
-        }
 
         if (!decoderRenderer.isAvcSupported()) {
             if (spinner != null) {
@@ -581,25 +456,15 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // Set requested orientation for possible new screen size
         setPreferredOrientationForCurrentDisplay();
 
-        if (virtualController != null) {
-            // Refresh layout of OSC for possible new screen size
-            virtualController.refreshLayout();
-        }
-
-        // Hide on-screen overlays in PiP mode
+       // Hide on-screen overlays in PiP mode
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             if (isInPictureInPictureMode()) {
                 isHidingOverlays = true;
-
-                if (virtualController != null) {
-                    virtualController.hide();
-                }
 
                 performanceOverlayView.setVisibility(View.GONE);
                 notificationOverlayView.setVisibility(View.GONE);
 
                 // Disable sensors while in PiP mode
-                controllerHandler.disableSensors();
 
                 // Update GameManager state to indicate we're in PiP (still gaming, but interruptible)
                 UiHelper.notifyStreamEnteringPiP(this);
@@ -609,9 +474,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
                 // Restore overlays to previous state when leaving PiP
 
-                if (virtualController != null) {
-                    virtualController.show();
-                }
 
                 if (prefConfig.enablePerfOverlay) {
                     performanceOverlayView.setVisibility(View.VISIBLE);
@@ -620,7 +482,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 notificationOverlayView.setVisibility(requestedNotificationOverlayVisibility);
 
                 // Enable sensors again after exiting PiP
-                controllerHandler.enableSensors();
 
                 // Update GameManager state to indicate we're out of PiP (gaming, non-interruptible)
                 UiHelper.notifyStreamExitingPiP(this);
@@ -734,14 +595,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
-
-        // We can't guarantee the state of modifiers keys which may have
-        // lifted while focus was not on us. Clear the modifier state.
-        this.modifierFlags = 0;
-
-        // With Android native pointer capture, capture is lost when focus is lost,
-        // so it must be requested again when focus is regained.
-        inputCaptureProvider.onWindowFocusChanged(hasFocus);
     }
 
     private boolean isRefreshRateEqualMatch(float refreshRate) {
@@ -1029,13 +882,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     protected void onDestroy() {
         super.onDestroy();
 
-        if (controllerHandler != null) {
-            controllerHandler.destroy();
-        }
-        if (keyboardTranslator != null) {
-            InputManager inputManager = (InputManager) getSystemService(Context.INPUT_SERVICE);
-            inputManager.unregisterInputDeviceListener(keyboardTranslator);
-        }
 
         if (lowLatencyWifiLock != null) {
             lowLatencyWifiLock.release();
@@ -1045,24 +891,18 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
 
         if (connectedToUsbDriverService) {
-            // Unbind from the discovery service
-            unbindService(usbDriverServiceConnection);
+
         }
 
         // Destroy the capture provider
-        inputCaptureProvider.destroy();
+
     }
 
     @Override
     protected void onPause() {
         if (isFinishing()) {
             // Stop any further input device notifications before we lose focus (and pointer capture)
-            if (controllerHandler != null) {
-                controllerHandler.stop();
-            }
-
             // Ungrab input to prevent further input device notifications
-            setInputGrabState(false);
         }
 
         super.onPause();
@@ -1075,9 +915,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         SpinnerDialog.closeDialogs(this);
         Dialog.closeDialogs();
 
-        if (virtualController != null) {
-            virtualController.hide();
-        }
+
 
         if (conn != null) {
             int videoFormat = decoderRenderer.getActiveVideoFormat();
@@ -1140,392 +978,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         finish();
     }
 
-    private void setInputGrabState(boolean grab) {
-        // Grab/ungrab the mouse cursor
-        if (grab) {
-            inputCaptureProvider.enableCapture();
-
-            // Enabling capture may hide the cursor again, so
-            // we will need to show it again.
-            if (cursorVisible) {
-                inputCaptureProvider.showCursor();
-            }
-        }
-        else {
-            inputCaptureProvider.disableCapture();
-        }
-
-        // Grab/ungrab system keyboard shortcuts
-        setMetaKeyCaptureState(grab);
-
-        grabbedInput = grab;
-    }
-
-    private final Runnable toggleGrab = new Runnable() {
-        @Override
-        public void run() {
-            setInputGrabState(!grabbedInput);
-        }
-    };
-
-    // Returns true if the key stroke was consumed
-    private boolean handleSpecialKeys(int androidKeyCode, boolean down) {
-        int modifierMask = 0;
-        int nonModifierKeyCode = KeyEvent.KEYCODE_UNKNOWN;
-
-        if (androidKeyCode == KeyEvent.KEYCODE_CTRL_LEFT ||
-            androidKeyCode == KeyEvent.KEYCODE_CTRL_RIGHT) {
-            modifierMask = KeyboardPacket.MODIFIER_CTRL;
-        }
-        else if (androidKeyCode == KeyEvent.KEYCODE_SHIFT_LEFT ||
-                 androidKeyCode == KeyEvent.KEYCODE_SHIFT_RIGHT) {
-            modifierMask = KeyboardPacket.MODIFIER_SHIFT;
-        }
-        else if (androidKeyCode == KeyEvent.KEYCODE_ALT_LEFT ||
-                 androidKeyCode == KeyEvent.KEYCODE_ALT_RIGHT) {
-            modifierMask = KeyboardPacket.MODIFIER_ALT;
-        }
-        else if (androidKeyCode == KeyEvent.KEYCODE_META_LEFT ||
-                androidKeyCode == KeyEvent.KEYCODE_META_RIGHT) {
-            modifierMask = KeyboardPacket.MODIFIER_META;
-        }
-        else {
-            nonModifierKeyCode = androidKeyCode;
-        }
-
-        if (down) {
-            this.modifierFlags |= modifierMask;
-        }
-        else {
-            this.modifierFlags &= ~modifierMask;
-        }
-
-        // Handle the special combos on the key up
-        if (waitingForAllModifiersUp || specialKeyCode != KeyEvent.KEYCODE_UNKNOWN) {
-            if (specialKeyCode == androidKeyCode) {
-                // If this is a key up for the special key itself, eat that because the host never saw the original key down
-                return true;
-            }
-            else if (modifierFlags != 0) {
-                // While we're waiting for modifiers to come up, eat all key downs and allow all key ups to pass
-                return down;
-            }
-            else {
-                // When all modifiers are up, perform the special action
-                switch (specialKeyCode) {
-                    // Toggle input grab
-                    case KeyEvent.KEYCODE_Z:
-                        Handler h = getWindow().getDecorView().getHandler();
-                        if (h != null) {
-                            h.postDelayed(toggleGrab, 250);
-                        }
-                        break;
-
-                    // Quit
-                    case KeyEvent.KEYCODE_Q:
-                        finish();
-                        break;
-
-                    // Toggle cursor visibility
-                    case KeyEvent.KEYCODE_C:
-                        if (!grabbedInput) {
-                            inputCaptureProvider.enableCapture();
-                            grabbedInput = true;
-                        }
-                        cursorVisible = !cursorVisible;
-                        if (cursorVisible) {
-                            inputCaptureProvider.showCursor();
-                        } else {
-                            inputCaptureProvider.hideCursor();
-                        }
-                        break;
-
-                    default:
-                        break;
-                }
-
-                // Reset special key state
-                specialKeyCode = KeyEvent.KEYCODE_UNKNOWN;
-                waitingForAllModifiersUp = false;
-            }
-        }
-        // Check if Ctrl+Alt+Shift is down when a non-modifier key is pressed
-        else if ((modifierFlags & (KeyboardPacket.MODIFIER_CTRL | KeyboardPacket.MODIFIER_ALT | KeyboardPacket.MODIFIER_SHIFT)) ==
-                (KeyboardPacket.MODIFIER_CTRL | KeyboardPacket.MODIFIER_ALT | KeyboardPacket.MODIFIER_SHIFT) &&
-                (down && nonModifierKeyCode != KeyEvent.KEYCODE_UNKNOWN)) {
-            switch (androidKeyCode) {
-                case KeyEvent.KEYCODE_Z:
-                case KeyEvent.KEYCODE_Q:
-                case KeyEvent.KEYCODE_C:
-                    // Remember that a special key combo was activated, so we can consume all key
-                    // events until the modifiers come up
-                    specialKeyCode = androidKeyCode;
-                    waitingForAllModifiersUp = true;
-                    return true;
-
-                default:
-                    // This isn't a special combo that we consume on the client side
-                    return false;
-            }
-        }
-
-        // Not a special combo
-        return false;
-    }
-
-    // We cannot simply use modifierFlags for all key event processing, because
-    // some IMEs will not generate real key events for pressing Shift. Instead
-    // they will simply send key events with isShiftPressed() returning true,
-    // and we will need to send the modifier flag ourselves.
-    private byte getModifierState(KeyEvent event) {
-        // Start with the global modifier state to ensure we cover the case
-        // detailed in https://github.com/moonlight-stream/moonlight-android/issues/840
-        byte modifier = getModifierState();
-        if (event.isShiftPressed()) {
-            modifier |= KeyboardPacket.MODIFIER_SHIFT;
-        }
-        if (event.isCtrlPressed()) {
-            modifier |= KeyboardPacket.MODIFIER_CTRL;
-        }
-        if (event.isAltPressed()) {
-            modifier |= KeyboardPacket.MODIFIER_ALT;
-        }
-        if (event.isMetaPressed()) {
-            modifier |= KeyboardPacket.MODIFIER_META;
-        }
-        return modifier;
-    }
-
-    private byte getModifierState() {
-        return (byte) modifierFlags;
-    }
-
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        return handleKeyDown(event) || super.onKeyDown(keyCode, event);
-    }
-
-    @Override
-    public boolean handleKeyDown(KeyEvent event) {
-        // Pass-through virtual navigation keys
-        if ((event.getFlags() & KeyEvent.FLAG_VIRTUAL_HARD_KEY) != 0) {
-            return false;
-        }
-
-        // Handle a synthetic back button event that some Android OS versions
-        // create as a result of a right-click. This event WILL repeat if
-        // the right mouse button is held down, so we ignore those.
-        int eventSource = event.getSource();
-        if ((eventSource == InputDevice.SOURCE_MOUSE ||
-                eventSource == InputDevice.SOURCE_MOUSE_RELATIVE) &&
-                event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
-
-            // Send the right mouse button event if mouse back and forward
-            // are disabled. If they are enabled, handleMotionEvent() will take
-            // care of this.
-            if (!prefConfig.mouseNavButtons) {
-                conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_RIGHT);
-            }
-
-            // Always return true, otherwise the back press will be propagated
-            // up to the parent and finish the activity.
-            return true;
-        }
-
-        boolean handled = false;
-
-        if (ControllerHandler.isGameControllerDevice(event.getDevice())) {
-            // Always try the controller handler first, unless it's an alphanumeric keyboard device.
-            // Otherwise, controller handler will eat keyboard d-pad events.
-            handled = controllerHandler.handleButtonDown(event);
-        }
-
-        // Try the keyboard handler if it wasn't handled as a game controller
-        if (!handled) {
-            // Let this method take duplicate key down events
-            if (handleSpecialKeys(event.getKeyCode(), true)) {
-                return true;
-            }
-
-            // Pass through keyboard input if we're not grabbing
-            if (!grabbedInput) {
-                return false;
-            }
-
-            // We'll send it as a raw key event if we have a key mapping, otherwise we'll send it
-            // as UTF-8 text (if it's a printable character).
-            short translated = keyboardTranslator.translate(event.getKeyCode(), event.getDeviceId());
-            if (translated == 0) {
-                // Make sure it has a valid Unicode representation and it's not a dead character
-                // (which we don't support). If those are true, we can send it as UTF-8 text.
-                //
-                // NB: We need to be sure this happens before the getRepeatCount() check because
-                // UTF-8 events don't auto-repeat on the host side.
-                int unicodeChar = event.getUnicodeChar();
-                if ((unicodeChar & KeyCharacterMap.COMBINING_ACCENT) == 0 && (unicodeChar & KeyCharacterMap.COMBINING_ACCENT_MASK) != 0) {
-                    conn.sendUtf8Text(""+(char)unicodeChar);
-                    return true;
-                }
-
-                return false;
-            }
-
-            // Eat repeat down events
-            if (event.getRepeatCount() > 0) {
-                return true;
-            }
-
-            conn.sendKeyboardInput(translated, KeyboardPacket.KEY_DOWN, getModifierState(event),
-                    keyboardTranslator.hasNormalizedMapping(event.getKeyCode(), event.getDeviceId()) ? 0 : MoonBridge.SS_KBE_FLAG_NON_NORMALIZED);
-        }
-
-        return true;
-    }
-
-    @Override
-    public boolean onKeyUp(int keyCode, KeyEvent event) {
-        return handleKeyUp(event) || super.onKeyUp(keyCode, event);
-    }
-
-    @Override
-    public boolean handleKeyUp(KeyEvent event) {
-        // Pass-through virtual navigation keys
-        if ((event.getFlags() & KeyEvent.FLAG_VIRTUAL_HARD_KEY) != 0) {
-            return false;
-        }
-
-        // Handle a synthetic back button event that some Android OS versions
-        // create as a result of a right-click.
-        int eventSource = event.getSource();
-        if ((eventSource == InputDevice.SOURCE_MOUSE ||
-                eventSource == InputDevice.SOURCE_MOUSE_RELATIVE) &&
-                event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
-
-            // Send the right mouse button event if mouse back and forward
-            // are disabled. If they are enabled, handleMotionEvent() will take
-            // care of this.
-            if (!prefConfig.mouseNavButtons) {
-                conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_RIGHT);
-            }
-
-            // Always return true, otherwise the back press will be propagated
-            // up to the parent and finish the activity.
-            return true;
-        }
-
-        boolean handled = false;
-        if (ControllerHandler.isGameControllerDevice(event.getDevice())) {
-            // Always try the controller handler first, unless it's an alphanumeric keyboard device.
-            // Otherwise, controller handler will eat keyboard d-pad events.
-            handled = controllerHandler.handleButtonUp(event);
-        }
-
-        // Try the keyboard handler if it wasn't handled as a game controller
-        if (!handled) {
-            if (handleSpecialKeys(event.getKeyCode(), false)) {
-                return true;
-            }
-
-            // Pass through keyboard input if we're not grabbing
-            if (!grabbedInput) {
-                return false;
-            }
-
-            short translated = keyboardTranslator.translate(event.getKeyCode(), event.getDeviceId());
-            if (translated == 0) {
-                // If we sent this event as UTF-8 on key down, also report that it was handled
-                // when we get the key up event for it.
-                int unicodeChar = event.getUnicodeChar();
-                return (unicodeChar & KeyCharacterMap.COMBINING_ACCENT) == 0 && (unicodeChar & KeyCharacterMap.COMBINING_ACCENT_MASK) != 0;
-            }
-
-            conn.sendKeyboardInput(translated, KeyboardPacket.KEY_UP, getModifierState(event),
-                    keyboardTranslator.hasNormalizedMapping(event.getKeyCode(), event.getDeviceId()) ? 0 : MoonBridge.SS_KBE_FLAG_NON_NORMALIZED);
-        }
-
-        return true;
-    }
-
-    @Override
-    public boolean onKeyMultiple(int keyCode, int repeatCount, KeyEvent event) {
-        return handleKeyMultiple(event) || super.onKeyMultiple(keyCode, repeatCount, event);
-    }
-
-    private boolean handleKeyMultiple(KeyEvent event) {
-        // We can receive keys from a software keyboard that don't correspond to any existing
-        // KEYCODE value. Android will give those to us as an ACTION_MULTIPLE KeyEvent.
-        //
-        // Despite the fact that the Android docs say this is unused since API level 29, these
-        // events are still sent as of Android 13 for the above case.
-        //
-        // For other cases of ACTION_MULTIPLE, we will not report those as handled so hopefully
-        // they will be passed to us again as regular singular key events.
-        if (event.getKeyCode() != KeyEvent.KEYCODE_UNKNOWN || event.getCharacters() == null) {
-            return false;
-        }
-
-        conn.sendUtf8Text(event.getCharacters());
-        return true;
-    }
-
-    private TouchContext getTouchContext(int actionIndex)
-    {
-        if (actionIndex < touchContextMap.length) {
-            return touchContextMap[actionIndex];
-        }
-        else {
-            return null;
-        }
-    }
-
-    @Override
-    public void toggleKeyboard() {
-        LimeLog.info("Toggling keyboard overlay");
-        InputMethodManager inputManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        inputManager.toggleSoftInput(0, 0);
-    }
-
-    private byte getLiTouchTypeFromEvent(MotionEvent event) {
-        switch (event.getActionMasked()) {
-            case MotionEvent.ACTION_DOWN:
-            case MotionEvent.ACTION_POINTER_DOWN:
-                return MoonBridge.LI_TOUCH_EVENT_DOWN;
-
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_POINTER_UP:
-                if ((event.getFlags() & MotionEvent.FLAG_CANCELED) != 0) {
-                    return MoonBridge.LI_TOUCH_EVENT_CANCEL;
-                }
-                else {
-                    return MoonBridge.LI_TOUCH_EVENT_UP;
-                }
-
-            case MotionEvent.ACTION_MOVE:
-                return MoonBridge.LI_TOUCH_EVENT_MOVE;
-
-            case MotionEvent.ACTION_CANCEL:
-                // ACTION_CANCEL applies to *all* pointers in the gesture, so it maps to CANCEL_ALL
-                // rather than CANCEL. For a single pointer cancellation, that's indicated via
-                // FLAG_CANCELED on a ACTION_POINTER_UP.
-                // https://developer.android.com/develop/ui/views/touch-and-input/gestures/multi
-                return MoonBridge.LI_TOUCH_EVENT_CANCEL_ALL;
-
-            case MotionEvent.ACTION_HOVER_ENTER:
-            case MotionEvent.ACTION_HOVER_MOVE:
-                return MoonBridge.LI_TOUCH_EVENT_HOVER;
-
-            case MotionEvent.ACTION_HOVER_EXIT:
-                return MoonBridge.LI_TOUCH_EVENT_HOVER_LEAVE;
-
-            case MotionEvent.ACTION_BUTTON_PRESS:
-            case MotionEvent.ACTION_BUTTON_RELEASE:
-                return MoonBridge.LI_TOUCH_EVENT_BUTTON_ONLY;
-
-            default:
-               return -1;
-        }
-    }
-
     private float[] getStreamViewRelativeNormalizedXY(View view, MotionEvent event, int pointerIndex) {
         float normalizedX = event.getX(pointerIndex);
         float normalizedY = event.getY(pointerIndex);
@@ -1551,27 +1003,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     private static float normalizeValueInRange(float value, InputDevice.MotionRange range) {
         return (value - range.getMin()) / range.getRange();
-    }
-
-    private static float getPressureOrDistance(MotionEvent event, int pointerIndex) {
-        InputDevice dev = event.getDevice();
-        switch (event.getActionMasked()) {
-            case MotionEvent.ACTION_HOVER_ENTER:
-            case MotionEvent.ACTION_HOVER_MOVE:
-            case MotionEvent.ACTION_HOVER_EXIT:
-                // Hover events report distance
-                if (dev != null) {
-                    InputDevice.MotionRange distanceRange = dev.getMotionRange(MotionEvent.AXIS_DISTANCE, event.getSource());
-                    if (distanceRange != null) {
-                        return normalizeValueInRange(event.getAxisValue(MotionEvent.AXIS_DISTANCE, pointerIndex), distanceRange);
-                    }
-                }
-                return 0.0f;
-
-            default:
-                // Other events report pressure
-                return event.getPressure(pointerIndex);
-        }
     }
 
     private static short getRotationDegrees(MotionEvent event, int pointerIndex) {
@@ -1643,32 +1074,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         return new float[] { cartesianToR(contactAreaMajorCartesian), cartesianToR(contactAreaMinorCartesian) };
     }
 
-    private boolean sendPenEventForPointer(View view, MotionEvent event, byte eventType, byte toolType, int pointerIndex) {
-        byte penButtons = 0;
-        if ((event.getButtonState() & MotionEvent.BUTTON_STYLUS_PRIMARY) != 0) {
-            penButtons |= MoonBridge.LI_PEN_BUTTON_PRIMARY;
-        }
-        if ((event.getButtonState() & MotionEvent.BUTTON_STYLUS_SECONDARY) != 0) {
-            penButtons |= MoonBridge.LI_PEN_BUTTON_SECONDARY;
-        }
-
-        byte tiltDegrees = MoonBridge.LI_TILT_UNKNOWN;
-        InputDevice dev = event.getDevice();
-        if (dev != null) {
-            if (dev.getMotionRange(MotionEvent.AXIS_TILT, event.getSource()) != null) {
-                tiltDegrees = (byte)Math.toDegrees(event.getAxisValue(MotionEvent.AXIS_TILT, pointerIndex));
-            }
-        }
-
-        float[] normalizedCoords = getStreamViewRelativeNormalizedXY(view, event, pointerIndex);
-        float[] normalizedContactArea = getStreamViewNormalizedContactArea(event, pointerIndex);
-        return conn.sendPenEvent(eventType, toolType, penButtons,
-                normalizedCoords[0], normalizedCoords[1],
-                getPressureOrDistance(event, pointerIndex),
-                normalizedContactArea[0], normalizedContactArea[1],
-                getRotationDegrees(event, pointerIndex), tiltDegrees) != MoonBridge.LI_ERR_UNSUPPORTED;
-    }
-
     private static byte convertToolTypeToStylusToolType(MotionEvent event, int pointerIndex) {
         switch (event.getToolType(pointerIndex)) {
             case MotionEvent.TOOL_TYPE_ERASER:
@@ -1680,515 +1085,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
     }
 
-    private boolean trySendPenEvent(View view, MotionEvent event) {
-        byte eventType = getLiTouchTypeFromEvent(event);
-        if (eventType < 0) {
-            return false;
-        }
 
-        if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
-            // Move events may impact all active pointers
-            boolean handledStylusEvent = false;
-            for (int i = 0; i < event.getPointerCount(); i++) {
-                byte toolType = convertToolTypeToStylusToolType(event, i);
-                if (toolType == MoonBridge.LI_TOOL_TYPE_UNKNOWN) {
-                    // Not a stylus pointer, so skip it
-                    continue;
-                }
-                else {
-                    // This pointer is a stylus, so we'll report that we handled this event
-                    handledStylusEvent = true;
-                }
-
-                if (!sendPenEventForPointer(view, event, eventType, toolType, i)) {
-                    // Pen events aren't supported by the host
-                    return false;
-                }
-            }
-            return handledStylusEvent;
-        }
-        else if (event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
-            // Cancel impacts all active pointers
-            return conn.sendPenEvent(MoonBridge.LI_TOUCH_EVENT_CANCEL_ALL, MoonBridge.LI_TOOL_TYPE_UNKNOWN, (byte)0,
-                    0, 0, 0, 0, 0,
-                    MoonBridge.LI_ROT_UNKNOWN, MoonBridge.LI_TILT_UNKNOWN) != MoonBridge.LI_ERR_UNSUPPORTED;
-        }
-        else {
-            // Up, Down, and Hover events are specific to the action index
-            byte toolType = convertToolTypeToStylusToolType(event, event.getActionIndex());
-            if (toolType == MoonBridge.LI_TOOL_TYPE_UNKNOWN) {
-                // Not a stylus event
-                return false;
-            }
-            return sendPenEventForPointer(view, event, eventType, toolType, event.getActionIndex());
-        }
-    }
-
-    private boolean sendTouchEventForPointer(View view, MotionEvent event, byte eventType, int pointerIndex) {
-        float[] normalizedCoords = getStreamViewRelativeNormalizedXY(view, event, pointerIndex);
-        float[] normalizedContactArea = getStreamViewNormalizedContactArea(event, pointerIndex);
-        return conn.sendTouchEvent(eventType, event.getPointerId(pointerIndex),
-                normalizedCoords[0], normalizedCoords[1],
-                getPressureOrDistance(event, pointerIndex),
-                normalizedContactArea[0], normalizedContactArea[1],
-                getRotationDegrees(event, pointerIndex)) != MoonBridge.LI_ERR_UNSUPPORTED;
-    }
-
-    private boolean trySendTouchEvent(View view, MotionEvent event) {
-        byte eventType = getLiTouchTypeFromEvent(event);
-        if (eventType < 0) {
-            return false;
-        }
-
-        if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
-            // Move events may impact all active pointers
-            for (int i = 0; i < event.getPointerCount(); i++) {
-                if (!sendTouchEventForPointer(view, event, eventType, i)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        else if (event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
-            // Cancel impacts all active pointers
-            return conn.sendTouchEvent(MoonBridge.LI_TOUCH_EVENT_CANCEL_ALL, 0,
-                    0, 0, 0, 0, 0,
-                    MoonBridge.LI_ROT_UNKNOWN) != MoonBridge.LI_ERR_UNSUPPORTED;
-        }
-        else {
-            // Up, Down, and Hover events are specific to the action index
-            return sendTouchEventForPointer(view, event, eventType, event.getActionIndex());
-        }
-    }
-
-    // Returns true if the event was consumed
-    // NB: View is only present if called from a view callback
-    private boolean handleMotionEvent(View view, MotionEvent event) {
-        // Pass through mouse/touch/joystick input if we're not grabbing
-        if (!grabbedInput) {
-            return false;
-        }
-
-        int eventSource = event.getSource();
-        int deviceSources = event.getDevice() != null ? event.getDevice().getSources() : 0;
-        if ((eventSource & InputDevice.SOURCE_CLASS_JOYSTICK) != 0) {
-            if (controllerHandler.handleMotionEvent(event)) {
-                return true;
-            }
-        }
-        else if ((deviceSources & InputDevice.SOURCE_CLASS_JOYSTICK) != 0 && controllerHandler.tryHandleTouchpadEvent(event)) {
-            return true;
-        }
-        else if ((eventSource & InputDevice.SOURCE_CLASS_POINTER) != 0 ||
-                 (eventSource & InputDevice.SOURCE_CLASS_POSITION) != 0 ||
-                 eventSource == InputDevice.SOURCE_MOUSE_RELATIVE)
-        {
-            // This case is for mice and non-finger touch devices
-            if (eventSource == InputDevice.SOURCE_MOUSE ||
-                    (eventSource & InputDevice.SOURCE_CLASS_POSITION) != 0 || // SOURCE_TOUCHPAD
-                    eventSource == InputDevice.SOURCE_MOUSE_RELATIVE ||
-                    (event.getPointerCount() >= 1 &&
-                            (event.getToolType(0) == MotionEvent.TOOL_TYPE_MOUSE ||
-                                    event.getToolType(0) == MotionEvent.TOOL_TYPE_STYLUS ||
-                                    event.getToolType(0) == MotionEvent.TOOL_TYPE_ERASER)) ||
-                    eventSource == 12290) // 12290 = Samsung DeX mode desktop mouse
-            {
-                int buttonState = event.getButtonState();
-                int changedButtons = buttonState ^ lastButtonState;
-
-                // The DeX touchpad on the Fold 4 sends proper right click events using BUTTON_SECONDARY,
-                // but doesn't send BUTTON_PRIMARY for a regular click. Instead it sends ACTION_DOWN/UP,
-                // so we need to fix that up to look like a sane input event to process it correctly.
-                if (eventSource == 12290) {
-                    if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-                        buttonState |= MotionEvent.BUTTON_PRIMARY;
-                    }
-                    else if (event.getAction() == MotionEvent.ACTION_UP) {
-                        buttonState &= ~MotionEvent.BUTTON_PRIMARY;
-                    }
-                    else {
-                        // We may be faking the primary button down from a previous event,
-                        // so be sure to add that bit back into the button state.
-                        buttonState |= (lastButtonState & MotionEvent.BUTTON_PRIMARY);
-                    }
-
-                    changedButtons = buttonState ^ lastButtonState;
-                }
-
-                // Ignore mouse input if we're not capturing from our input source
-                if (!inputCaptureProvider.isCapturingActive()) {
-                    // We return true here because otherwise the events may end up causing
-                    // Android to synthesize d-pad events.
-                    return true;
-                }
-
-                // Always update the position before sending any button events. If we're
-                // dealing with a stylus without hover support, our position might be
-                // significantly different than before.
-                if (inputCaptureProvider.eventHasRelativeMouseAxes(event)) {
-                    // Send the deltas straight from the motion event
-                    short deltaX = (short)inputCaptureProvider.getRelativeAxisX(event);
-                    short deltaY = (short)inputCaptureProvider.getRelativeAxisY(event);
-
-                    if (deltaX != 0 || deltaY != 0) {
-                        if (prefConfig.absoluteMouseMode) {
-                            // NB: view may be null, but we can unconditionally use streamView because we don't need to adjust
-                            // relative axis deltas for the position of the streamView within the parent's coordinate system.
-                            conn.sendMouseMoveAsMousePosition(deltaX, deltaY, (short)streamView.getWidth(), (short)streamView.getHeight());
-                        }
-                        else {
-                            conn.sendMouseMove(deltaX, deltaY);
-                        }
-                    }
-                }
-                else if ((eventSource & InputDevice.SOURCE_CLASS_POSITION) != 0) {
-                    // If this input device is not associated with the view itself (like a trackpad),
-                    // we'll convert the device-specific coordinates to use to send the cursor position.
-                    // This really isn't ideal but it's probably better than nothing.
-                    //
-                    // Trackpad on newer versions of Android (Oreo and later) should be caught by the
-                    // relative axes case above. If we get here, we're on an older version that doesn't
-                    // support pointer capture.
-                    InputDevice device = event.getDevice();
-                    if (device != null) {
-                        InputDevice.MotionRange xRange = device.getMotionRange(MotionEvent.AXIS_X, eventSource);
-                        InputDevice.MotionRange yRange = device.getMotionRange(MotionEvent.AXIS_Y, eventSource);
-
-                        // All touchpads coordinate planes should start at (0, 0)
-                        if (xRange != null && yRange != null && xRange.getMin() == 0 && yRange.getMin() == 0) {
-                            int xMax = (int)xRange.getMax();
-                            int yMax = (int)yRange.getMax();
-
-                            // Touchpads must be smaller than (65535, 65535)
-                            if (xMax <= Short.MAX_VALUE && yMax <= Short.MAX_VALUE) {
-                                conn.sendMousePosition((short)event.getX(), (short)event.getY(),
-                                                       (short)xMax, (short)yMax);
-                            }
-                        }
-                    }
-                }
-                else if (view != null && trySendPenEvent(view, event)) {
-                    // If our host supports pen events, send it directly
-                    return true;
-                }
-                else if (view != null) {
-                    // Otherwise send absolute position based on the view for SOURCE_CLASS_POINTER
-                    updateMousePosition(view, event);
-                }
-
-                if (event.getActionMasked() == MotionEvent.ACTION_SCROLL) {
-                    // Send the vertical scroll packet
-                    conn.sendMouseHighResScroll((short)(event.getAxisValue(MotionEvent.AXIS_VSCROLL) * 120));
-                    conn.sendMouseHighResHScroll((short)(event.getAxisValue(MotionEvent.AXIS_HSCROLL) * 120));
-                }
-
-                if ((changedButtons & MotionEvent.BUTTON_PRIMARY) != 0) {
-                    if ((buttonState & MotionEvent.BUTTON_PRIMARY) != 0) {
-                        conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_LEFT);
-                    }
-                    else {
-                        conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_LEFT);
-                    }
-                }
-
-                // Mouse secondary or stylus primary is right click (stylus down is left click)
-                if ((changedButtons & (MotionEvent.BUTTON_SECONDARY | MotionEvent.BUTTON_STYLUS_PRIMARY)) != 0) {
-                    if ((buttonState & (MotionEvent.BUTTON_SECONDARY | MotionEvent.BUTTON_STYLUS_PRIMARY)) != 0) {
-                        conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_RIGHT);
-                    }
-                    else {
-                        conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_RIGHT);
-                    }
-                }
-
-                // Mouse tertiary or stylus secondary is middle click
-                if ((changedButtons & (MotionEvent.BUTTON_TERTIARY | MotionEvent.BUTTON_STYLUS_SECONDARY)) != 0) {
-                    if ((buttonState & (MotionEvent.BUTTON_TERTIARY | MotionEvent.BUTTON_STYLUS_SECONDARY)) != 0) {
-                        conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_MIDDLE);
-                    }
-                    else {
-                        conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_MIDDLE);
-                    }
-                }
-
-                if (prefConfig.mouseNavButtons) {
-                    if ((changedButtons & MotionEvent.BUTTON_BACK) != 0) {
-                        if ((buttonState & MotionEvent.BUTTON_BACK) != 0) {
-                            conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_X1);
-                        }
-                        else {
-                            conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_X1);
-                        }
-                    }
-
-                    if ((changedButtons & MotionEvent.BUTTON_FORWARD) != 0) {
-                        if ((buttonState & MotionEvent.BUTTON_FORWARD) != 0) {
-                            conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_X2);
-                        }
-                        else {
-                            conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_X2);
-                        }
-                    }
-                }
-
-                // Handle stylus presses
-                if (event.getPointerCount() == 1 && event.getActionIndex() == 0) {
-                    if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-                        if (event.getToolType(0) == MotionEvent.TOOL_TYPE_STYLUS) {
-                            lastAbsTouchDownTime = event.getEventTime();
-                            lastAbsTouchDownX = event.getX(0);
-                            lastAbsTouchDownY = event.getY(0);
-
-                            // Stylus is left click
-                            conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_LEFT);
-                        } else if (event.getToolType(0) == MotionEvent.TOOL_TYPE_ERASER) {
-                            lastAbsTouchDownTime = event.getEventTime();
-                            lastAbsTouchDownX = event.getX(0);
-                            lastAbsTouchDownY = event.getY(0);
-
-                            // Eraser is right click
-                            conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_RIGHT);
-                        }
-                    }
-                    else if (event.getActionMasked() == MotionEvent.ACTION_UP || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
-                        if (event.getToolType(0) == MotionEvent.TOOL_TYPE_STYLUS) {
-                            lastAbsTouchUpTime = event.getEventTime();
-                            lastAbsTouchUpX = event.getX(0);
-                            lastAbsTouchUpY = event.getY(0);
-
-                            // Stylus is left click
-                            conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_LEFT);
-                        } else if (event.getToolType(0) == MotionEvent.TOOL_TYPE_ERASER) {
-                            lastAbsTouchUpTime = event.getEventTime();
-                            lastAbsTouchUpX = event.getX(0);
-                            lastAbsTouchUpY = event.getY(0);
-
-                            // Eraser is right click
-                            conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_RIGHT);
-                        }
-                    }
-                }
-
-                lastButtonState = buttonState;
-            }
-            // This case is for fingers
-            else
-            {
-                if (virtualController != null &&
-                        (virtualController.getControllerMode() == VirtualController.ControllerMode.MoveButtons ||
-                         virtualController.getControllerMode() == VirtualController.ControllerMode.ResizeButtons)) {
-                    // Ignore presses when the virtual controller is being configured
-                    return true;
-                }
-
-                // If this is the parent view, we'll offset our coordinates to appear as if they
-                // are relative to the StreamView like our StreamView touch events are.
-                float xOffset, yOffset;
-                if (view != streamView && !prefConfig.touchscreenTrackpad) {
-                    xOffset = -streamView.getX();
-                    yOffset = -streamView.getY();
-                }
-                else {
-                    xOffset = 0.f;
-                    yOffset = 0.f;
-                }
-
-                int actionIndex = event.getActionIndex();
-
-                int eventX = (int)(event.getX(actionIndex) + xOffset);
-                int eventY = (int)(event.getY(actionIndex) + yOffset);
-
-                // Special handling for 3 finger gesture
-                if (event.getActionMasked() == MotionEvent.ACTION_POINTER_DOWN &&
-                        event.getPointerCount() == 3) {
-                    // Three fingers down
-                    threeFingerDownTime = event.getEventTime();
-
-                    // Cancel the first and second touches to avoid
-                    // erroneous events
-                    for (TouchContext aTouchContext : touchContextMap) {
-                        aTouchContext.cancelTouch();
-                    }
-
-                    return true;
-                }
-
-                // TODO: Re-enable native touch when have a better solution for handling
-                // cancelled touches from Android gestures and 3 finger taps to activate
-                // the software keyboard.
-                /*if (!prefConfig.touchscreenTrackpad && trySendTouchEvent(view, event)) {
-                    // If this host supports touch events and absolute touch is enabled,
-                    // send it directly as a touch event.
-                    return true;
-                }*/
-
-                TouchContext context = getTouchContext(actionIndex);
-                if (context == null) {
-                    return false;
-                }
-
-                switch (event.getActionMasked())
-                {
-                case MotionEvent.ACTION_POINTER_DOWN:
-                case MotionEvent.ACTION_DOWN:
-                    for (TouchContext touchContext : touchContextMap) {
-                        touchContext.setPointerCount(event.getPointerCount());
-                    }
-                    context.touchDownEvent(eventX, eventY, event.getEventTime(), true);
-                    break;
-                case MotionEvent.ACTION_POINTER_UP:
-                case MotionEvent.ACTION_UP:
-                    if (event.getPointerCount() == 1 &&
-                            (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || (event.getFlags() & MotionEvent.FLAG_CANCELED) == 0)) {
-                        // All fingers up
-                        if (event.getEventTime() - threeFingerDownTime < THREE_FINGER_TAP_THRESHOLD) {
-                            // This is a 3 finger tap to bring up the keyboard
-                            toggleKeyboard();
-                            return true;
-                        }
-                    }
-
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && (event.getFlags() & MotionEvent.FLAG_CANCELED) != 0) {
-                        context.cancelTouch();
-                    }
-                    else {
-                        context.touchUpEvent(eventX, eventY, event.getEventTime());
-                    }
-
-                    for (TouchContext touchContext : touchContextMap) {
-                        touchContext.setPointerCount(event.getPointerCount() - 1);
-                    }
-                    if (actionIndex == 0 && event.getPointerCount() > 1 && !context.isCancelled()) {
-                        // The original secondary touch now becomes primary
-                        context.touchDownEvent(
-                                (int)(event.getX(1) + xOffset),
-                                (int)(event.getY(1) + yOffset),
-                                event.getEventTime(), false);
-                    }
-                    break;
-                case MotionEvent.ACTION_MOVE:
-                    // ACTION_MOVE is special because it always has actionIndex == 0
-                    // We'll call the move handlers for all indexes manually
-
-                    // First process the historical events
-                    for (int i = 0; i < event.getHistorySize(); i++) {
-                        for (TouchContext aTouchContextMap : touchContextMap) {
-                            if (aTouchContextMap.getActionIndex() < event.getPointerCount())
-                            {
-                                aTouchContextMap.touchMoveEvent(
-                                        (int)(event.getHistoricalX(aTouchContextMap.getActionIndex(), i) + xOffset),
-                                        (int)(event.getHistoricalY(aTouchContextMap.getActionIndex(), i) + yOffset),
-                                        event.getHistoricalEventTime(i));
-                            }
-                        }
-                    }
-
-                    // Now process the current values
-                    for (TouchContext aTouchContextMap : touchContextMap) {
-                        if (aTouchContextMap.getActionIndex() < event.getPointerCount())
-                        {
-                            aTouchContextMap.touchMoveEvent(
-                                    (int)(event.getX(aTouchContextMap.getActionIndex()) + xOffset),
-                                    (int)(event.getY(aTouchContextMap.getActionIndex()) + yOffset),
-                                    event.getEventTime());
-                        }
-                    }
-                    break;
-                case MotionEvent.ACTION_CANCEL:
-                    for (TouchContext aTouchContext : touchContextMap) {
-                        aTouchContext.cancelTouch();
-                        aTouchContext.setPointerCount(0);
-                    }
-                    break;
-                default:
-                    return false;
-                }
-            }
-
-            // Handled a known source
-            return true;
-        }
-
-        // Unknown class
-        return false;
-    }
-
-    @Override
-    public boolean onGenericMotionEvent(MotionEvent event) {
-        return handleMotionEvent(null, event) || super.onGenericMotionEvent(event);
-
-    }
-
-    private void updateMousePosition(View touchedView, MotionEvent event) {
-        // X and Y are already relative to the provided view object
-        float eventX, eventY;
-
-        // For our StreamView itself, we can use the coordinates unmodified.
-        if (touchedView == streamView) {
-            eventX = event.getX(0);
-            eventY = event.getY(0);
-        }
-        else {
-            // For the containing background view, we must subtract the origin
-            // of the StreamView to get video-relative coordinates.
-            eventX = event.getX(0) - streamView.getX();
-            eventY = event.getY(0) - streamView.getY();
-        }
-
-        if (event.getPointerCount() == 1 && event.getActionIndex() == 0 &&
-                (event.getToolType(0) == MotionEvent.TOOL_TYPE_ERASER ||
-                event.getToolType(0) == MotionEvent.TOOL_TYPE_STYLUS))
-        {
-            switch (event.getActionMasked()) {
-                case MotionEvent.ACTION_DOWN:
-                case MotionEvent.ACTION_HOVER_ENTER:
-                case MotionEvent.ACTION_HOVER_EXIT:
-                case MotionEvent.ACTION_HOVER_MOVE:
-                    if (event.getEventTime() - lastAbsTouchUpTime <= STYLUS_UP_DEAD_ZONE_DELAY &&
-                            Math.sqrt(Math.pow(eventX - lastAbsTouchUpX, 2) + Math.pow(eventY - lastAbsTouchUpY, 2)) <= STYLUS_UP_DEAD_ZONE_RADIUS) {
-                        // Enforce a small deadzone between touch up and hover or touch down to allow more precise double-clicking
-                        return;
-                    }
-                    break;
-
-                case MotionEvent.ACTION_MOVE:
-                case MotionEvent.ACTION_UP:
-                    if (event.getEventTime() - lastAbsTouchDownTime <= STYLUS_DOWN_DEAD_ZONE_DELAY &&
-                            Math.sqrt(Math.pow(eventX - lastAbsTouchDownX, 2) + Math.pow(eventY - lastAbsTouchDownY, 2)) <= STYLUS_DOWN_DEAD_ZONE_RADIUS) {
-                        // Enforce a small deadzone between touch down and move or touch up to allow more precise double-clicking
-                        return;
-                    }
-                    break;
-            }
-        }
-
-        // We may get values slightly outside our view region on ACTION_HOVER_ENTER and ACTION_HOVER_EXIT.
-        // Normalize these to the view size. We can't just drop them because we won't always get an event
-        // right at the boundary of the view, so dropping them would result in our cursor never really
-        // reaching the sides of the screen.
-        eventX = Math.min(Math.max(eventX, 0), streamView.getWidth());
-        eventY = Math.min(Math.max(eventY, 0), streamView.getHeight());
-
-        conn.sendMousePosition((short)eventX, (short)eventY, (short)streamView.getWidth(), (short)streamView.getHeight());
-    }
-
-    @Override
-    public boolean onGenericMotion(View view, MotionEvent event) {
-        return handleMotionEvent(view, event);
-    }
-
-    @SuppressLint("ClickableViewAccessibility")
-    @Override
-    public boolean onTouch(View view, MotionEvent event) {
-        if (event.getAction() == MotionEvent.ACTION_DOWN) {
-            // Tell the OS not to buffer input events for us
-            //
-            // NB: This is still needed even when we call the newer requestUnbufferedDispatch()!
-            view.requestUnbufferedDispatch(event);
-        }
-
-        return handleMotionEvent(view, event);
-    }
 
     @Override
     public void stageStarting(final String stage) {
@@ -2211,7 +1108,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             connecting = connected = false;
             updatePipAutoEnter();
 
-            controllerHandler.stop();
 
             // Update GameManager state to indicate we're no longer in game
             UiHelper.notifyStreamEnded(this);
@@ -2282,11 +1178,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 // Let the display go to sleep now
                 getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-                // Stop processing controller input
-                controllerHandler.stop();
-
-                // Ungrab input
-                setInputGrabState(false);
 
                 if (!displayedFailureDialog) {
                     displayedFailureDialog = true;
@@ -2402,12 +1293,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 // is too early to capture. We will delay a second to allow
                 // the spinner to dismiss before capturing.
                 Handler h = new Handler();
-                h.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        setInputGrabState(true);
-                    }
-                }, 500);
 
                 // Keep the display on
                 getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -2457,14 +1342,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public void rumble(short controllerNumber, short lowFreqMotor, short highFreqMotor) {
         LimeLog.info(String.format((Locale)null, "Rumble on gamepad %d: %04x %04x", controllerNumber, lowFreqMotor, highFreqMotor));
 
-        controllerHandler.handleRumble(controllerNumber, lowFreqMotor, highFreqMotor);
+
     }
 
     @Override
     public void rumbleTriggers(short controllerNumber, short leftTrigger, short rightTrigger) {
         LimeLog.info(String.format((Locale)null, "Rumble on gamepad triggers %d: %04x %04x", controllerNumber, leftTrigger, rightTrigger));
 
-        controllerHandler.handleRumbleTriggers(controllerNumber, leftTrigger, rightTrigger);
+
     }
 
     @Override
@@ -2475,12 +1360,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public void setMotionEventState(short controllerNumber, byte motionType, short reportRateHz) {
-        controllerHandler.handleSetMotionEventState(controllerNumber, motionType, reportRateHz);
+
     }
 
     @Override
     public void setControllerLED(short controllerNumber, byte r, byte g, byte b) {
-        controllerHandler.handleSetControllerLED(controllerNumber, r, g, b);
+
     }
 
     @Override
@@ -2553,72 +1438,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
     }
 
-    @Override
-    public void mouseMove(int deltaX, int deltaY) {
-        conn.sendMouseMove((short) deltaX, (short) deltaY);
-    }
-
-    @Override
-    public void mouseButtonEvent(int buttonId, boolean down) {
-        byte buttonIndex;
-
-        switch (buttonId)
-        {
-        case EvdevListener.BUTTON_LEFT:
-            buttonIndex = MouseButtonPacket.BUTTON_LEFT;
-            break;
-        case EvdevListener.BUTTON_MIDDLE:
-            buttonIndex = MouseButtonPacket.BUTTON_MIDDLE;
-            break;
-        case EvdevListener.BUTTON_RIGHT:
-            buttonIndex = MouseButtonPacket.BUTTON_RIGHT;
-            break;
-        case EvdevListener.BUTTON_X1:
-            buttonIndex = MouseButtonPacket.BUTTON_X1;
-            break;
-        case EvdevListener.BUTTON_X2:
-            buttonIndex = MouseButtonPacket.BUTTON_X2;
-            break;
-        default:
-            LimeLog.warning("Unhandled button: "+buttonId);
-            return;
-        }
-
-        if (down) {
-            conn.sendMouseButtonDown(buttonIndex);
-        }
-        else {
-            conn.sendMouseButtonUp(buttonIndex);
-        }
-    }
-
-    @Override
-    public void mouseVScroll(byte amount) {
-        conn.sendMouseScroll(amount);
-    }
-
-    @Override
-    public void mouseHScroll(byte amount) {
-        conn.sendMouseHScroll(amount);
-    }
-
-    @Override
-    public void keyboardEvent(boolean buttonDown, short keyCode) {
-        short keyMap = keyboardTranslator.translate(keyCode, -1);
-        if (keyMap != 0) {
-            // handleSpecialKeys() takes the Android keycode
-            if (handleSpecialKeys(keyCode, buttonDown)) {
-                return;
-            }
-
-            if (buttonDown) {
-                conn.sendKeyboardInput(keyMap, KeyboardPacket.KEY_DOWN, getModifierState(), (byte)0);
-            }
-            else {
-                conn.sendKeyboardInput(keyMap, KeyboardPacket.KEY_UP, getModifierState(), (byte)0);
-            }
-        }
-    }
 
     @Override
     public void onSystemUiVisibilityChange(int visibility) {
@@ -2646,31 +1465,5 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         });
     }
 
-    @Override
-    public void onUsbPermissionPromptStarting() {
-        // Disable PiP auto-enter while the USB permission prompt is on-screen. This prevents
-        // us from entering PiP while the user is interacting with the OS permission dialog.
-        suppressPipRefCount++;
-        updatePipAutoEnter();
-    }
 
-    @Override
-    public void onUsbPermissionPromptCompleted() {
-        suppressPipRefCount--;
-        updatePipAutoEnter();
-    }
-
-    @Override
-    public boolean onKey(View view, int keyCode, KeyEvent keyEvent) {
-        switch (keyEvent.getAction()) {
-            case KeyEvent.ACTION_DOWN:
-                return handleKeyDown(keyEvent);
-            case KeyEvent.ACTION_UP:
-                return handleKeyUp(keyEvent);
-            case KeyEvent.ACTION_MULTIPLE:
-                return handleKeyMultiple(keyEvent);
-            default:
-                return false;
-        }
-    }
 }

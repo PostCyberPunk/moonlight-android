@@ -10,8 +10,6 @@ import android.widget.Toast;
 
 import com.limelight.R;
 
-import static com.limelight.binding.input.virtual_controller.VirtualControllerConfigurationLoader.OSC_PREFERENCE;
-
 public class ConfirmDeleteOscPreference extends DialogPreference {
     public ConfirmDeleteOscPreference(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
@@ -30,9 +28,6 @@ public class ConfirmDeleteOscPreference extends DialogPreference {
     }
 
     public void onClick(DialogInterface dialog, int which) {
-        if (which == DialogInterface.BUTTON_POSITIVE) {
-            getContext().getSharedPreferences(OSC_PREFERENCE, Context.MODE_PRIVATE).edit().clear().apply();
-            Toast.makeText(getContext(), R.string.toast_reset_osc_success, Toast.LENGTH_SHORT).show();
-        }
+
     }
 }
