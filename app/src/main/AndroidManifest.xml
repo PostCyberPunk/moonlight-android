@@ -56,13 +56,6 @@
         android:enableOnBackInvokedCallback="false"
         android:theme="@style/AppTheme">
 
-        <provider
-            android:name=".PosterContentProvider"
-            android:authorities="poster.${applicationId}"
-            android:enabled="true"
-            android:exported="true">
-        </provider>
-
         <!-- Samsung multi-window support -->
         <uses-library
             android:name="com.sec.android.app.multiwindow"
