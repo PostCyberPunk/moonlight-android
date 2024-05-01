@@ -318,9 +318,6 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
         bindService(new Intent(this, ComputerManagerService.class), serviceConnection,
                 Service.BIND_AUTO_CREATE);
 
-//        final AppObject app = (AppObject) appGridAdapter.getItem(0);
-//        LimeLog.info("Starting app: " + app.app.getAppName());
-//        ServerHelper.doStart(AppView.this, app.app, computer, managerBinder);
     }
 
     private void updateHiddenApps(boolean hideImmediately) {
@@ -537,6 +534,10 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
 
                 if (updated) {
                     appGridAdapter.notifyDataSetChanged();
+
+        final AppObject app = (AppObject) appGridAdapter.getItem(0);
+        LimeLog.info("Starting app: " + app.app.getAppName());
+        ServerHelper.doStart(AppView.this, app.app, computer, managerBinder);
                 }
             }
         });
@@ -643,9 +644,9 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
         registerForContextMenu(listView);
         listView.requestFocus();
 
-        final AppObject app = (AppObject) appGridAdapter.getItem(0);
-        LimeLog.severe("Starting app: " + app.app.getAppName());
-        ServerHelper.doStart(AppView.this, app.app, computer, managerBinder);
+//        final AppObject app = (AppObject) appGridAdapter.getItem(0);
+//        LimeLog.severe("Starting app: " + app.app.getAppName());
+//        ServerHelper.doStart(AppView.this, app.app, computer, managerBinder);
     }
 
     public static class AppObject {
