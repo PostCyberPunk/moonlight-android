@@ -69,7 +69,7 @@ public class Dialog implements Runnable {
         alert.setMessage(message);
         alert.setCancelable(false);
         alert.setCanceledOnTouchOutside(false);
- 
+
         alert.setButton(AlertDialog.BUTTON_POSITIVE, activity.getResources().getText(android.R.string.ok), new DialogInterface.OnClickListener() {
               public void onClick(DialogInterface dialog, int which) {
                   synchronized (rundownDialogs) {
@@ -89,7 +89,7 @@ public class Dialog implements Runnable {
 
                 runOnDismiss.run();
 
-                HelpLauncher.launchTroubleshooting(activity);
+//                HelpLauncher.launchTroubleshooting(activity);
             }
         });
         alert.setOnShowListener(new DialogInterface.OnShowListener(){
