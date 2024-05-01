@@ -121,65 +121,68 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     private final static int GAMESTREAM_EOL_ID = 11;
 
     private void initializeViews() {
-        setContentView(R.layout.activity_pc_view);
+//        setContentView(R.layout.activity_pc_view);
 
         UiHelper.notifyNewRootView(this);
 
         // Allow floating expanded PiP overlays while browsing PCs
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            setShouldDockBigOverlays(false);
-        }
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//            setShouldDockBigOverlays(false);
+//        }
 
         // Set default preferences if we've never been run
+        //TODO: Change Preference
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
 
         // Set the correct layout for the PC grid
-        pcGridAdapter.updateLayoutWithPreferences(this, PreferenceConfiguration.readPreferences(this));
+//        pcGridAdapter.updateLayoutWithPreferences(this, PreferenceConfiguration.readPreferences(this));
 
+        //REFA
         // Setup the list view
-        ImageButton settingsButton = findViewById(R.id.settingsButton);
-        ImageButton addComputerButton = findViewById(R.id.manuallyAddPc);
-        ImageButton helpButton = findViewById(R.id.helpButton);
+//        ImageButton settingsButton = findViewById(R.id.settingsButton);
+//        ImageButton addComputerButton = findViewById(R.id.manuallyAddPc);
+//        ImageButton helpButton = findViewById(R.id.helpButton);
 
-        settingsButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startActivity(new Intent(PcView.this, StreamSettings.class));
-            }
-        });
-        addComputerButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent i = new Intent(PcView.this, AddComputerManually.class);
-                startActivity(i);
-            }
-        });
-        helpButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                HelpLauncher.launchSetupGuide(PcView.this);
-            }
-        });
+//        settingsButton.setOnClickListener(new OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                startActivity(new Intent(PcView.this, StreamSettings.class));
+//            }
+//        });
+//        addComputerButton.setOnClickListener(new OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                Intent i = new Intent(PcView.this, AddComputerManually.class);
+//                startActivity(i);
+//            }
+//        });
+//        helpButton.setOnClickListener(new OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                HelpLauncher.launchSetupGuide(PcView.this);
+//            }
+//        });
 
         // Amazon review didn't like the help button because the wiki was not entirely
         // navigable via the Fire TV remote (though the relevant parts were). Let's hide
         // it on Fire TV.
-        if (getPackageManager().hasSystemFeature("amazon.hardware.fire_tv")) {
-            helpButton.setVisibility(View.GONE);
-        }
+//        if (getPackageManager().hasSystemFeature("amazon.hardware.fire_tv")) {
+//            helpButton.setVisibility(View.GONE);
+//        }
 
-        getFragmentManager().beginTransaction()
-            .replace(R.id.pcFragmentContainer, new AdapterFragment())
-            .commitAllowingStateLoss();
+        //TODO
+//        getFragmentManager().beginTransaction()
+//            .replace(R.id.pcFragmentContainer, new AdapterFragment())
+//            .commitAllowingStateLoss();
 
-        noPcFoundLayout = findViewById(R.id.no_pc_found_layout);
-        if (pcGridAdapter.getCount() == 0) {
-            noPcFoundLayout.setVisibility(View.VISIBLE);
-        }
-        else {
-            noPcFoundLayout.setVisibility(View.INVISIBLE);
-        }
-        pcGridAdapter.notifyDataSetChanged();
+//        noPcFoundLayout = findViewById(R.id.no_pc_found_layout);
+//        if (pcGridAdapter.getCount() == 0) {
+//            noPcFoundLayout.setVisibility(View.VISIBLE);
+//        }
+//        else {
+//            noPcFoundLayout.setVisibility(View.INVISIBLE);
+//        }
+//        pcGridAdapter.notifyDataSetChanged();
     }
 
     @Override
@@ -188,45 +191,45 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
         // Assume we're in the foreground when created to avoid a race
         // between binding to CMS and onResume()
-        inForeground = true;
+//        inForeground = true;
 
         // Create a GLSurfaceView to fetch GLRenderer unless we have
         // a cached result already.
-        final GlPreferences glPrefs = GlPreferences.readPreferences(this);
-        if (!glPrefs.savedFingerprint.equals(Build.FINGERPRINT) || glPrefs.glRenderer.isEmpty()) {
-            GLSurfaceView surfaceView = new GLSurfaceView(this);
-            surfaceView.setRenderer(new GLSurfaceView.Renderer() {
-                @Override
-                public void onSurfaceCreated(GL10 gl10, EGLConfig eglConfig) {
-                    // Save the GLRenderer string so we don't need to do this next time
-                    glPrefs.glRenderer = gl10.glGetString(GL10.GL_RENDERER);
-                    glPrefs.savedFingerprint = Build.FINGERPRINT;
-                    glPrefs.writePreferences();
-
-                    LimeLog.info("Fetched GL Renderer: " + glPrefs.glRenderer);
-
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            completeOnCreate();
-                        }
-                    });
-                }
-
-                @Override
-                public void onSurfaceChanged(GL10 gl10, int i, int i1) {
-                }
-
-                @Override
-                public void onDrawFrame(GL10 gl10) {
-                }
-            });
-            setContentView(surfaceView);
-        }
-        else {
-            LimeLog.info("Cached GL Renderer: " + glPrefs.glRenderer);
-            completeOnCreate();
-        }
+//        final GlPreferences glPrefs = GlPreferences.readPreferences(this);
+//        if (!glPrefs.savedFingerprint.equals(Build.FINGERPRINT) || glPrefs.glRenderer.isEmpty()) {
+//            GLSurfaceView surfaceView = new GLSurfaceView(this);
+//            surfaceView.setRenderer(new GLSurfaceView.Renderer() {
+//                @Override
+//                public void onSurfaceCreated(GL10 gl10, EGLConfig eglConfig) {
+//                    // Save the GLRenderer string so we don't need to do this next time
+//                    glPrefs.glRenderer = gl10.glGetString(GL10.GL_RENDERER);
+//                    glPrefs.savedFingerprint = Build.FINGERPRINT;
+//                    glPrefs.writePreferences();
+//
+//                    LimeLog.info("Fetched GL Renderer: " + glPrefs.glRenderer);
+//
+//                    runOnUiThread(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            completeOnCreate();
+//                        }
+//                    });
+//                }
+//
+//                @Override
+//                public void onSurfaceChanged(GL10 gl10, int i, int i1) {
+//                }
+//
+//                @Override
+//                public void onDrawFrame(GL10 gl10) {
+//                }
+//            });
+//            setContentView(surfaceView);
+//        }
+//        else {
+//            LimeLog.info("Cached GL Renderer: " + glPrefs.glRenderer);
+//            completeOnCreate();
+//        }
     }
 
     private void completeOnCreate() {
@@ -234,7 +237,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
         shortcutHelper = new ShortcutHelper(this);
 
-        UiHelper.setLocale(this);
+        //UiHelper.setLocale(this);
 
         // Bind to the computer manager service
         bindService(new Intent(PcView.this, ComputerManagerService.class), serviceConnection,
@@ -325,13 +328,15 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         Dialog.closeDialogs();
     }
 
+    //TODO
+/*
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
         stopComputerUpdates(false);
 
         // Call superclass
         super.onCreateContextMenu(menu, v, menuInfo);
-                
+
         AdapterContextMenuInfo info = (AdapterContextMenuInfo) menuInfo;
         ComputerObject computer = (ComputerObject) pcGridAdapter.getItem(info.position);
 
@@ -383,6 +388,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         menu.add(Menu.NONE, DELETE_ID, 6, getResources().getString(R.string.pcview_menu_delete_pc));
         menu.add(Menu.NONE, VIEW_DETAILS_ID, 7,  getResources().getString(R.string.pcview_menu_details));
     }
+*/
 
     @Override
     public void onContextMenuClosed(Menu menu) {
@@ -600,86 +606,86 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         startActivity(i);
     }
 
-    @Override
-    public boolean onContextItemSelected(MenuItem item) {
-        AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
-        final ComputerObject computer = (ComputerObject) pcGridAdapter.getItem(info.position);
-        switch (item.getItemId()) {
-            case PAIR_ID:
-                doPair(computer.details);
-                return true;
+//    @Override
+//    public boolean onContextItemSelected(MenuItem item) {
+//        AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
+//        final ComputerObject computer = (ComputerObject) pcGridAdapter.getItem(info.position);
+//        switch (item.getItemId()) {
+//            case PAIR_ID:
+//                doPair(computer.details);
+//                return true;
+//
+//            case UNPAIR_ID:
+//                doUnpair(computer.details);
+//                return true;
+//
+//            case WOL_ID:
+//                doWakeOnLan(computer.details);
+//                return true;
+//
+//            case DELETE_ID:
+//                if (ActivityManager.isUserAMonkey()) {
+//                    LimeLog.info("Ignoring delete PC request from monkey");
+//                    return true;
+//                }
+//                UiHelper.displayDeletePcConfirmationDialog(this, computer.details, new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        if (managerBinder == null) {
+//                            Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
+//                            return;
+//                        }
+//                        removeComputer(computer.details);
+//                    }
+//                }, null);
+//                return true;
+//
+//            case FULL_APP_LIST_ID:
+//                doAppList(computer.details, false, true);
+//                return true;
+//
+//            case RESUME_ID:
+//                if (managerBinder == null) {
+//                    Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
+//                    return true;
+//                }
+//
+//                ServerHelper.doStart(this, new NvApp("app", computer.details.runningGameId, false), computer.details, managerBinder);
+//                return true;
+//
+//            case QUIT_ID:
+//                if (managerBinder == null) {
+//                    Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
+//                    return true;
+//                }
+//
+//                // Display a confirmation dialog first
+//                UiHelper.displayQuitConfirmationDialog(this, new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        ServerHelper.doQuit(PcView.this, computer.details,
+//                                new NvApp("app", 0, false), managerBinder, null);
+//                    }
+//                }, null);
+//                return true;
+//
+//            case VIEW_DETAILS_ID:
+//                Dialog.displayDialog(PcView.this, getResources().getString(R.string.title_details), computer.details.toString(), false);
+//                return true;
+//
+//            case TEST_NETWORK_ID:
+//                ServerHelper.doNetworkTest(PcView.this);
+//                return true;
+//
+//            case GAMESTREAM_EOL_ID:
+//                HelpLauncher.launchGameStreamEolFaq(PcView.this);
+//                return true;
+//
+//            default:
+//                return super.onContextItemSelected(item);
+//        }
+//    }
 
-            case UNPAIR_ID:
-                doUnpair(computer.details);
-                return true;
-
-            case WOL_ID:
-                doWakeOnLan(computer.details);
-                return true;
-
-            case DELETE_ID:
-                if (ActivityManager.isUserAMonkey()) {
-                    LimeLog.info("Ignoring delete PC request from monkey");
-                    return true;
-                }
-                UiHelper.displayDeletePcConfirmationDialog(this, computer.details, new Runnable() {
-                    @Override
-                    public void run() {
-                        if (managerBinder == null) {
-                            Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
-                            return;
-                        }
-                        removeComputer(computer.details);
-                    }
-                }, null);
-                return true;
-
-            case FULL_APP_LIST_ID:
-                doAppList(computer.details, false, true);
-                return true;
-
-            case RESUME_ID:
-                if (managerBinder == null) {
-                    Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
-                    return true;
-                }
-
-                ServerHelper.doStart(this, new NvApp("app", computer.details.runningGameId, false), computer.details, managerBinder);
-                return true;
-
-            case QUIT_ID:
-                if (managerBinder == null) {
-                    Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
-                    return true;
-                }
-
-                // Display a confirmation dialog first
-                UiHelper.displayQuitConfirmationDialog(this, new Runnable() {
-                    @Override
-                    public void run() {
-                        ServerHelper.doQuit(PcView.this, computer.details,
-                                new NvApp("app", 0, false), managerBinder, null);
-                    }
-                }, null);
-                return true;
-
-            case VIEW_DETAILS_ID:
-                Dialog.displayDialog(PcView.this, getResources().getString(R.string.title_details), computer.details.toString(), false);
-                return true;
-
-            case TEST_NETWORK_ID:
-                ServerHelper.doNetworkTest(PcView.this);
-                return true;
-
-            case GAMESTREAM_EOL_ID:
-                HelpLauncher.launchGameStreamEolFaq(PcView.this);
-                return true;
-
-            default:
-                return super.onContextItemSelected(item);
-        }
-    }
-    
     private void removeComputer(ComputerDetails details) {
         managerBinder.removeComputer(details);
 
@@ -711,7 +717,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             }
         }
     }
-    
+
     private void updateComputer(ComputerDetails details) {
         ComputerObject existingEntry = null;
 
