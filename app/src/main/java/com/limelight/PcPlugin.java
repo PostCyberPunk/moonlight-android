@@ -90,14 +90,14 @@ public class PcPlugin extends Activity {
     }
 
     private void initializeViews() {
-        setContentView(R.layout.activity_pc_view);
-
-        UiHelper.notifyNewRootView(this);
+//        setContentView(R.layout.activity_pc_view);
+//
+//        UiHelper.notifyNewRootView(this);
 
         // Allow floating expanded PiP overlays while browsing PCs
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            setShouldDockBigOverlays(false);
-        }
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//            setShouldDockBigOverlays(false);
+//        }
 
         // Set default preferences if we've never been run
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
@@ -106,30 +106,30 @@ public class PcPlugin extends Activity {
 //        pcList.updateLayoutWithPreferences(this, PreferenceConfiguration.readPreferences(this));
 
         // Setup the list view
-        ImageButton settingsButton = findViewById(R.id.settingsButton);
-        ImageButton addComputerButton = findViewById(R.id.manuallyAddPc);
-        ImageButton helpButton = findViewById(R.id.helpButton);
-
-        settingsButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startActivity(new Intent(PcPlugin.this, StreamSettings.class));
-            }
-        });
-        addComputerButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent i = new Intent(PcPlugin.this, AddComputerManually.class);
-                startActivity(i);
-            }
-        });
-        helpButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-//                HelpLauncher.launchSetupGuide(mActivity);
-                //ShowComputerName
-            }
-        });
+//        ImageButton settingsButton = findViewById(R.id.settingsButton);
+//        ImageButton addComputerButton = findViewById(R.id.manuallyAddPc);
+//        ImageButton helpButton = findViewById(R.id.helpButton);
+//
+//        settingsButton.setOnClickListener(new OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                startActivity(new Intent(PcPlugin.this, StreamSettings.class));
+//            }
+//        });
+//        addComputerButton.setOnClickListener(new OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                Intent i = new Intent(PcPlugin.this, AddComputerManually.class);
+//                startActivity(i);
+//            }
+//        });
+//        helpButton.setOnClickListener(new OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+////                HelpLauncher.launchSetupGuide(mActivity);
+//                //ShowComputerName
+//            }
+//        });
         Handler h = new Handler();
         h.postDelayed(new Runnable() {
             @Override
@@ -148,9 +148,11 @@ public class PcPlugin extends Activity {
         // Assume we're in the foreground when created to avoid a race
         // between binding to CMS and onResume()
         inForeground = true;
+        LimeLog.severe("jjjjPlugin onCreate2");
 
         // Create a GLSurfaceView to fetch GLRenderer unless we have
         // a cached result already.
+/*
         final GlPreferences glPrefs = GlPreferences.readPreferences(this);
         if (!glPrefs.savedFingerprint.equals(Build.FINGERPRINT) || glPrefs.glRenderer.isEmpty()) {
             GLSurfaceView surfaceView = new GLSurfaceView(this);
@@ -180,12 +182,13 @@ public class PcPlugin extends Activity {
                 public void onDrawFrame(GL10 gl10) {
                 }
             });
-            setContentView(surfaceView);
+//            setContentView(surfaceView);
         } else {
             LimeLog.info("Cached GL Renderer: " + glPrefs.glRenderer);
             completeOnCreate();
         }
-//            completeOnCreate();
+*/
+            completeOnCreate();
     }
 
     private void completeOnCreate() {
