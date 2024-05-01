@@ -10,15 +10,17 @@ public class LimeLog {
     public static void info(String msg) {
         LOGGER.info(msg);
     }
-    
+
     public static void warning(String msg) {
         LOGGER.warning(msg);
     }
-    
+
     public static void severe(String msg) {
         LOGGER.severe(msg);
     }
-    
+    public static void todo(String msg) {
+        LOGGER.warning(msg);
+    }
     public static void setFileHandler(String fileName) throws IOException {
         LOGGER.addHandler(new FileHandler(fileName));
     }
