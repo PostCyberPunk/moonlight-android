@@ -401,11 +401,11 @@ public class DumbActivity extends Activity {
             return;
         }
 
-        Intent i = new Intent(this, AppView.class);
-        i.putExtra(AppView.NAME_EXTRA, computer.name);
-        i.putExtra(AppView.UUID_EXTRA, computer.uuid);
-        i.putExtra(AppView.NEW_PAIR_EXTRA, newlyPaired);
-        i.putExtra(AppView.SHOW_HIDDEN_APPS_EXTRA, showHiddenGames);
+        Intent i = new Intent(this, AppPlugin.class);
+        i.putExtra(AppPlugin.NAME_EXTRA, computer.name);
+        i.putExtra(AppPlugin.UUID_EXTRA, computer.uuid);
+        i.putExtra(AppPlugin.NEW_PAIR_EXTRA, newlyPaired);
+        i.putExtra(AppPlugin.SHOW_HIDDEN_APPS_EXTRA, showHiddenGames);
         startActivity(i);
     }
 
