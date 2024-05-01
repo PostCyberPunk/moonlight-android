@@ -117,7 +117,7 @@ public class ShortcutTrampoline extends Activity {
                                         }
 
                                         if (details.state == ComputerDetails.State.ONLINE && details.pairState == PairingManager.PairState.PAIRED) {
-                                            
+
                                             // Launch game if provided app ID, otherwise launch app view
                                             if (app != null) {
                                                 if (details.runningGameId == 0 || details.runningGameId == app.getAppId()) {
@@ -158,15 +158,15 @@ public class ShortcutTrampoline extends Activity {
 
                                                 // Add the PC view at the back (and clear the task)
                                                 Intent i;
-                                                i = new Intent(ShortcutTrampoline.this, PcView.class);
-                                                i.setAction(Intent.ACTION_MAIN);
-                                                i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
-                                                intentStack.add(i);
+//                                                i = new Intent(ShortcutTrampoline.this, PcView.class);
+//                                                i.setAction(Intent.ACTION_MAIN);
+//                                                i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
+//                                                intentStack.add(i);
 
                                                 // Take this intent's data and create an intent to start the app view
-                                                i = new Intent(getIntent());
-                                                i.setClass(ShortcutTrampoline.this, AppView.class);
-                                                intentStack.add(i);
+//                                                i = new Intent(getIntent());
+//                                                i.setClass(ShortcutTrampoline.this, AppView.class);
+//                                                intentStack.add(i);
 
                                                 // If a game is running, we'll make the stream the top level activity
                                                 if (details.runningGameId != 0) {
@@ -177,7 +177,7 @@ public class ShortcutTrampoline extends Activity {
                                                 // Now start the activities
                                                 startActivities(intentStack.toArray(new Intent[]{}));
                                             }
-                                            
+
                                         }
                                         else if (details.state == ComputerDetails.State.OFFLINE) {
                                             // Computer offline - display an error dialog
@@ -257,7 +257,7 @@ public class ShortcutTrampoline extends Activity {
         UiHelper.notifyNewRootView(this);
 
         String appIdString = getIntent().getStringExtra(Game.EXTRA_APP_ID);
-        uuidString = getIntent().getStringExtra(AppView.UUID_EXTRA);
+//        uuidString = getIntent().getStringExtra(AppView.UUID_EXTRA);
 
         if (validateInput(uuidString, appIdString)) {
             if (appIdString != null && !appIdString.isEmpty()) {
