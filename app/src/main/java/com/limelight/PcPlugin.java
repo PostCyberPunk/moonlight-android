@@ -20,6 +20,7 @@ import com.limelight.utils.ServerHelper;
 import com.limelight.utils.UiHelper;
 
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.app.Service;
 import android.content.ComponentName;
 import android.content.Intent;
@@ -33,6 +34,7 @@ import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.WindowManager;
 import android.widget.ImageButton;
 
 import org.xmlpull.v1.XmlPullParserException;
@@ -145,6 +147,7 @@ public class PcPlugin extends Activity {
         super.onCreate(savedInstanceState);
         //!!TRY:change this to unity
         mActivity = this;
+        ResizeWindow();
         // Assume we're in the foreground when created to avoid a race
         // between binding to CMS and onResume()
         inForeground = true;
@@ -464,6 +467,14 @@ public class PcPlugin extends Activity {
                 doAppList(computer.details, false, false);
             }
         }
+    }
+    private void ResizeWindow() {
+        WindowManager.LayoutParams params = getWindow().getAttributes();
+        params.x = 0;
+        params.height = 2560; // height in pixels
+        params.width = 1080; // width in pixels
+        params.y = 0;
+        this.getWindow().setAttributes(params);
     }
     //End of class-----------
 }
