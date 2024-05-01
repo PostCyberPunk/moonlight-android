@@ -157,48 +157,49 @@ public class DumbActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        //!!TRY:change this to unity
+        mActivity = this;
         // Assume we're in the foreground when created to avoid a race
         // between binding to CMS and onResume()
         inForeground = true;
 
         // Create a GLSurfaceView to fetch GLRenderer unless we have
         // a cached result already.
-//        final GlPreferences glPrefs = GlPreferences.readPreferences(this);
-//        if (!glPrefs.savedFingerprint.equals(Build.FINGERPRINT) || glPrefs.glRenderer.isEmpty()) {
-//            GLSurfaceView surfaceView = new GLSurfaceView(this);
-//            surfaceView.setRenderer(new GLSurfaceView.Renderer() {
-//                @Override
-//                public void onSurfaceCreated(GL10 gl10, EGLConfig eglConfig) {
-//                    // Save the GLRenderer string so we don't need to do this next time
-//                    glPrefs.glRenderer = gl10.glGetString(GL10.GL_RENDERER);
-//                    glPrefs.savedFingerprint = Build.FINGERPRINT;
-//                    glPrefs.writePreferences();
-//
-//                    LimeLog.info("Fetched GL Renderer: " + glPrefs.glRenderer);
-//
-//                    runOnUiThread(new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            completeOnCreate();
-//                        }
-//                    });
-//                }
-//
-//                @Override
-//                public void onSurfaceChanged(GL10 gl10, int i, int i1) {
-//                }
-//
-//                @Override
-//                public void onDrawFrame(GL10 gl10) {
-//                }
-//            });
-//            setContentView(surfaceView);
-//        } else {
-//            LimeLog.info("Cached GL Renderer: " + glPrefs.glRenderer);
-//            completeOnCreate();
-//        }
+        final GlPreferences glPrefs = GlPreferences.readPreferences(this);
+        if (!glPrefs.savedFingerprint.equals(Build.FINGERPRINT) || glPrefs.glRenderer.isEmpty()) {
+            GLSurfaceView surfaceView = new GLSurfaceView(this);
+            surfaceView.setRenderer(new GLSurfaceView.Renderer() {
+                @Override
+                public void onSurfaceCreated(GL10 gl10, EGLConfig eglConfig) {
+                    // Save the GLRenderer string so we don't need to do this next time
+                    glPrefs.glRenderer = gl10.glGetString(GL10.GL_RENDERER);
+                    glPrefs.savedFingerprint = Build.FINGERPRINT;
+                    glPrefs.writePreferences();
+
+                    LimeLog.info("Fetched GL Renderer: " + glPrefs.glRenderer);
+
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            completeOnCreate();
+                        }
+                    });
+                }
+
+                @Override
+                public void onSurfaceChanged(GL10 gl10, int i, int i1) {
+                }
+
+                @Override
+                public void onDrawFrame(GL10 gl10) {
+                }
+            });
+            setContentView(surfaceView);
+        } else {
+            LimeLog.info("Cached GL Renderer: " + glPrefs.glRenderer);
             completeOnCreate();
+        }
+//            completeOnCreate();
     }
 
     private void completeOnCreate() {
@@ -228,6 +229,7 @@ public class DumbActivity extends Activity {
                         mActivity.runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
+                                LimeLog.severe("Computer updated: " + details.pairState);
                                 updateComputer(details);
                             }
                         });
@@ -388,6 +390,7 @@ public class DumbActivity extends Activity {
             }
         }).start();
     }
+
     private void doAppList(ComputerDetails computer, boolean newlyPaired, boolean showHiddenGames) {
         if (computer.state == ComputerDetails.State.OFFLINE) {
             LimeLog.todo("Computer is offline");
@@ -405,6 +408,7 @@ public class DumbActivity extends Activity {
         i.putExtra(AppView.SHOW_HIDDEN_APPS_EXTRA, showHiddenGames);
         startActivity(i);
     }
+
     private void updateComputer(ComputerDetails details) {
         ComputerObject existingEntry = null;
 
@@ -428,6 +432,7 @@ public class DumbActivity extends Activity {
         }
         LimeLog.todo("Update the computer list view");
     }
+
     public static class ComputerObject {
         public ComputerDetails details;
 
