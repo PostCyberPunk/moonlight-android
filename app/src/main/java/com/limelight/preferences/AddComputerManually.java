@@ -45,7 +45,7 @@ public class AddComputerManually extends Activity {
     private Thread addThread;
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, final IBinder binder) {
-            managerBinder = ((ComputerManagerService.ComputerManagerBinder)binder);
+            managerBinder = ((ComputerManagerService.ComputerManagerBinder) binder);
             startAddThread();
         }
 
@@ -106,7 +106,8 @@ public class AddComputerManually extends Activity {
             if (uri.getHost() != null && !uri.getHost().isEmpty()) {
                 return uri;
             }
-        } catch (URISyntaxException ignored) {}
+        } catch (URISyntaxException ignored) {
+        }
 
         try {
             // Attempt to escape the input as an IPv6 literal.
@@ -115,7 +116,8 @@ public class AddComputerManually extends Activity {
             if (uri.getHost() != null && !uri.getHost().isEmpty()) {
                 return uri;
             }
-        } catch (URISyntaxException ignored) {}
+        } catch (URISyntaxException ignored) {
+        }
 
         return null;
     }
@@ -127,7 +129,7 @@ public class AddComputerManually extends Activity {
         int portTestResult;
 
         SpinnerDialog dialog = SpinnerDialog.displayDialog(this, getResources().getString(R.string.title_add_pc),
-            getResources().getString(R.string.msg_add_pc), false);
+                getResources().getString(R.string.msg_add_pc), false);
 
         try {
             ComputerDetails details = new ComputerDetails();
@@ -145,7 +147,7 @@ public class AddComputerManually extends Activity {
 
                 details.manualAddress = new ComputerDetails.AddressTuple(host, port);
                 success = managerBinder.addComputerBlocking(details);
-                if (!success){
+                if (!success) {
                     wrongSiteLocal = isWrongSubnetSiteLocalAddress(host);
                 }
             } else {
@@ -179,30 +181,26 @@ public class AddComputerManually extends Activity {
 
         if (invalidInput) {
             Dialog.displayDialog(this, getResources().getString(R.string.conn_error_title), getResources().getString(R.string.addpc_unknown_host), false);
-        }
-        else if (wrongSiteLocal) {
+        } else if (wrongSiteLocal) {
             Dialog.displayDialog(this, getResources().getString(R.string.conn_error_title), getResources().getString(R.string.addpc_wrong_sitelocal), false);
-        }
-        else if (!success) {
+        } else if (!success) {
             String dialogText;
-            if (portTestResult != MoonBridge.ML_TEST_RESULT_INCONCLUSIVE && portTestResult != 0)  {
+            if (portTestResult != MoonBridge.ML_TEST_RESULT_INCONCLUSIVE && portTestResult != 0) {
                 dialogText = getResources().getString(R.string.nettest_text_blocked);
-            }
-            else {
+            } else {
                 dialogText = getResources().getString(R.string.addpc_fail);
             }
             Dialog.displayDialog(this, getResources().getString(R.string.conn_error_title), dialogText, false);
-        }
-        else {
+        } else {
             AddComputerManually.this.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                Toast.makeText(AddComputerManually.this, getResources().getString(R.string.addpc_success), Toast.LENGTH_LONG).show();
+                    Toast.makeText(AddComputerManually.this, getResources().getString(R.string.addpc_success), Toast.LENGTH_LONG).show();
 
-                if (!isFinishing()) {
-                    // Close the activity
-                    AddComputerManually.this.finish();
-                }
+                    if (!isFinishing()) {
+                        // Close the activity
+                        AddComputerManually.this.finish();
+                    }
                 }
             });
         }
@@ -284,10 +282,9 @@ public class AddComputerManually extends Activity {
                                 keyEvent.getAction() == KeyEvent.ACTION_DOWN &&
                                 keyEvent.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
                     return handleDoneEvent();
-                }
-                else if (actionId == EditorInfo.IME_ACTION_PREVIOUS) {
+                } else if (actionId == EditorInfo.IME_ACTION_PREVIOUS) {
                     // This is how the Fire TV dismisses the keyboard
-                    InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(hostText.getWindowToken(), 0);
                     return false;
                 }
@@ -302,22 +299,22 @@ public class AddComputerManually extends Activity {
                 handleDoneEvent();
             }
         });
-
+//        computersToAdd.add("192.168.123.192");
         // Bind to the ComputerManager service
         bindService(new Intent(AddComputerManually.this,
-                    ComputerManagerService.class), serviceConnection, Service.BIND_AUTO_CREATE);
+                ComputerManagerService.class), serviceConnection, Service.BIND_AUTO_CREATE);
     }
 
     // Returns true if the event should be eaten
     private boolean handleDoneEvent() {
         String hostAddress = hostText.getText().toString().trim();
 
-        if (hostAddress.length() == 0) {
-            Toast.makeText(AddComputerManually.this, getResources().getString(R.string.addpc_enter_ip), Toast.LENGTH_LONG).show();
-            return true;
-        }
+//        if (hostAddress.length() == 0) {
+//            Toast.makeText(AddComputerManually.this, getResources().getString(R.string.addpc_enter_ip), Toast.LENGTH_LONG).show();
+//            return true;
+//        }
 
-        computersToAdd.add(hostAddress);
+        computersToAdd.add("192.168.123.192");
         return false;
     }
 }
