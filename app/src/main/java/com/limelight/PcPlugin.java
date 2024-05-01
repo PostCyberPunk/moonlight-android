@@ -8,27 +8,18 @@ import com.limelight.binding.PlatformBinding;
 import com.limelight.binding.crypto.AndroidCryptoProvider;
 import com.limelight.computers.ComputerManagerListener;
 import com.limelight.computers.ComputerManagerService;
-import com.limelight.grid.assets.DiskAssetLoader;
 import com.limelight.nvstream.http.ComputerDetails;
-import com.limelight.nvstream.http.NvApp;
 import com.limelight.nvstream.http.NvHTTP;
 import com.limelight.nvstream.http.PairingManager;
 import com.limelight.nvstream.http.PairingManager.PairState;
-import com.limelight.nvstream.wol.WakeOnLanSender;
 import com.limelight.preferences.AddComputerManually;
 import com.limelight.preferences.GlPreferences;
-import com.limelight.preferences.PreferenceConfiguration;
 import com.limelight.preferences.StreamSettings;
-import com.limelight.ui.AdapterFragment;
-import com.limelight.ui.AdapterFragmentCallbacks;
 import com.limelight.utils.Dialog;
-import com.limelight.utils.HelpLauncher;
 import com.limelight.utils.ServerHelper;
-import com.limelight.utils.ShortcutHelper;
 import com.limelight.utils.UiHelper;
 
 import android.app.Activity;
-import android.app.ActivityManager;
 import android.app.Service;
 import android.content.ComponentName;
 import android.content.Intent;
@@ -39,26 +30,16 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
-import android.view.ContextMenu;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
-import android.view.ContextMenu.ContextMenuInfo;
 import android.view.View.OnClickListener;
-import android.widget.AbsListView;
-import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ImageButton;
-import android.widget.RelativeLayout;
-import android.widget.Toast;
-import android.widget.AdapterView.AdapterContextMenuInfo;
 
 import org.xmlpull.v1.XmlPullParserException;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-public class DumbActivity extends Activity {
+public class PcPlugin extends Activity {
     private Activity mActivity;
     private PcList pcList;
     private ComputerManagerService.ComputerManagerBinder managerBinder;
@@ -131,13 +112,13 @@ public class DumbActivity extends Activity {
         settingsButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                startActivity(new Intent(DumbActivity.this, StreamSettings.class));
+                startActivity(new Intent(PcPlugin.this, StreamSettings.class));
             }
         });
         addComputerButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent i = new Intent(DumbActivity.this, AddComputerManually.class);
+                Intent i = new Intent(PcPlugin.this, AddComputerManually.class);
                 startActivity(i);
             }
         });
@@ -432,7 +413,6 @@ public class DumbActivity extends Activity {
         }
         LimeLog.todo("Update the computer list view");
     }
-
     public static class ComputerObject {
         public ComputerDetails details;
 
