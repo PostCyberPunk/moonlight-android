@@ -76,7 +76,7 @@
         <meta-data
             android:name="com.android.graphics.intervention.wm.allowDownscale"
             android:value="false"/>
-        
+
         <!-- Game Mode configuration -->
         <meta-data
             android:name="android.game_mode_config"
@@ -86,7 +86,7 @@
              in each activity even though it is implied by targeting API 24+ -->
 
         <activity
-            android:name=".PcView"
+            android:name=".DumbActivity"
             android:exported="true"
             android:resizeableActivity="true"
             android:enableOnBackInvokedCallback="true"
