@@ -127,9 +127,6 @@ public class PcPlugin extends Activity {
             public void onClick(View v) {
 //                HelpLauncher.launchSetupGuide(mActivity);
                 //ShowComputerName
-                LimeLog.severe("????");
-                ComputerObject computer = (ComputerObject) pcList.getItem(0);
-                doPair(computer.details);
             }
         });
 
@@ -412,7 +409,9 @@ public class PcPlugin extends Activity {
 
         }
         LimeLog.todo("Update the computer list view");
+        fakeStart();
     }
+
     public static class ComputerObject {
         public ComputerDetails details;
 
@@ -428,4 +427,26 @@ public class PcPlugin extends Activity {
             return details.name;
         }
     }
+
+
+    //Try
+    private void fakeAdd() {
+        Intent i = new Intent(mActivity, AddComputerManually.class);
+        mActivity.startActivity(i);
+    }
+
+    private void fakePair() {
+        LimeLog.severe("????");
+        PcPlugin.ComputerObject computer = (PcPlugin.ComputerObject) pcList.getItem(0);
+        doPair(computer.details);
+    }
+
+    private void fakeStart() {
+        if (pcList.getCount() == 0) {
+            fakeAdd();
+        } else {
+            fakePair();
+        }
+    }
+    //End of class-----------
 }
