@@ -2,35 +2,21 @@ package com.limelight;
 
 
 import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
 import android.app.Activity;
-import android.app.PictureInPictureParams;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
-import android.content.res.Configuration;
 import android.graphics.Point;
-import android.graphics.Rect;
-import android.media.AudioManager;
 import android.net.ConnectivityManager;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.util.Rational;
 import android.view.Display;
-import android.view.InputDevice;
-import android.view.KeyEvent;
-import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.View.OnSystemUiVisibilityChangeListener;
-import android.view.Window;
 import android.view.WindowManager;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.limelight.binding.PlatformBinding;
@@ -51,13 +37,10 @@ import com.limelight.preferences.PreferenceConfiguration;
 import com.limelight.ui.StreamView;
 import com.limelight.utils.Dialog;
 import com.limelight.utils.ServerHelper;
-import com.limelight.utils.ShortcutHelper;
 import com.limelight.utils.SpinnerDialog;
 import com.limelight.utils.UiHelper;
 
 import java.io.ByteArrayInputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -859,12 +842,12 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
         ComputerDetails computer = new ComputerDetails();
         computer.name = pcName;
         computer.uuid = Game.this.getIntent().getStringExtra(EXTRA_PC_UUID);
-        ShortcutHelper shortcutHelper = new ShortcutHelper(this);
-        shortcutHelper.reportComputerShortcutUsed(computer);
-        if (appName != null) {
-            // This may be null if launched from the "Resume Session" PC context menu item
-            shortcutHelper.reportGameLaunched(computer, app);
-        }
+//        ShortcutHelper shortcutHelper = new ShortcutHelper(this);
+//        shortcutHelper.reportComputerShortcutUsed(computer);
+//        if (appName != null) {
+//            // This may be null if launched from the "Resume Session" PC context menu item
+//            shortcutHelper.reportGameLaunched(computer, app);
+//        }
     }
 
 
