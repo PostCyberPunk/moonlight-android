@@ -81,8 +81,8 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix ".debug"
-            resValue "string", "app_label", "Moonlight (Debug)"
+            applicationIdSuffix ".libdebug"
+            resValue "string", "app_label", "Moonlib Debug"
             resValue "string", "app_label_root", "Moonlight (Root Debug)"
 
             minifyEnabled true
@@ -119,8 +119,8 @@ android {
             // is to please change the applicationId before you publish.
             //
             // TL;DR: Leave the following line alone!
-            applicationIdSuffix ".unofficial"
-            resValue "string", "app_label", "Moonlight"
+            applicationIdSuffix ".libTest"
+            resValue "string", "app_label", "MoonLibTest"
             resValue "string", "app_label_root", "Moonlight (Root)"
 
             minifyEnabled true
