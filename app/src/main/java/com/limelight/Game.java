@@ -66,39 +66,24 @@ import java.util.Locale;
 
 public class Game extends Activity implements SurfaceHolder.Callback,
 NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
-
-
     private PreferenceConfiguration prefConfig;
     private SharedPreferences tombstonePrefs;
-
     private NvConnection conn;
     private SpinnerDialog spinner;
     private boolean displayedFailureDialog = false;
     private boolean connecting = false;
     private boolean connected = false;
-    private boolean autoEnterPip = false;
     private boolean surfaceCreated = false;
     private boolean attemptedConnection = false;
-    private int suppressPipRefCount = 0;
     private String pcName;
     private String appName;
     private NvApp app;
     private float desiredRefreshRate;
     private StreamView streamView;
-
-    private boolean isHidingOverlays;
-    private TextView notificationOverlayView;
-    private int requestedNotificationOverlayVisibility = View.GONE;
-    private TextView performanceOverlayView;
-
     private MediaCodecDecoderRenderer decoderRenderer;
     private boolean reportedCrash;
-
     private WifiManager.WifiLock highPerfWifiLock;
     private WifiManager.WifiLock lowLatencyWifiLock;
-
-    private boolean connectedToUsbDriverService = false;
-
     public static final String EXTRA_HOST = "Host";
     public static final String EXTRA_PORT = "Port";
     public static final String EXTRA_HTTPS_PORT = "HttpsPort";
@@ -114,94 +99,18 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        UiHelper.setLocale(this);
-
-        // We don't want a title bar
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-
-        // Full-screen
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-
-        // If we're going to use immersive mode, we want to have
-        // the entire screen
-        getWindow().getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
-                        View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
-                        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
-
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN);
-
-        // Listen for UI visibility events
-        getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(this);
-
-        // Change volume button behavior
-        setVolumeControlStream(AudioManager.STREAM_MUSIC);
-
         // Inflate the content
         setContentView(R.layout.activity_game);
 
         // Start the spinner
-        spinner = SpinnerDialog.displayDialog(this, getResources().getString(R.string.conn_establishing_title),
-                getResources().getString(R.string.conn_establishing_msg), true);
 
         // Read the stream preferences
         prefConfig = PreferenceConfiguration.readPreferences(this);
         tombstonePrefs = Game.this.getSharedPreferences("DecoderTombstone", 0);
 
-        // Enter landscape unless we're on a square screen
-        setPreferredOrientationForCurrentDisplay();
-
-        if (prefConfig.stretchVideo || shouldIgnoreInsetsForResolution(prefConfig.width, prefConfig.height)) {
-            // Allow the activity to layout under notches if the fill-screen option
-            // was turned on by the user or it's a full-screen native resolution
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                getWindow().getAttributes().layoutInDisplayCutoutMode =
-                        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
-            }
-            else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                getWindow().getAttributes().layoutInDisplayCutoutMode =
-                        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
-            }
-        }
-
         // Listen for non-touch events on the game surface
         streamView = findViewById(R.id.surfaceView);
 
-
-        // Listen for touch events on the background touch view to enable trackpad mode
-        // to work on areas outside of the StreamView itself. We use a separate View
-        // for this rather than just handling it at the Activity level, because that
-        // allows proper touch splitting, which the OSC relies upon.
-        View backgroundTouchView = findViewById(R.id.backgroundTouchView);
-
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // Request unbuffered input event dispatching for all input classes we handle here.
-            // Without this, input events are buffered to be delivered in lock-step with VBlank,
-            // artificially increasing input latency while streaming.
-            streamView.requestUnbufferedDispatch(
-                    InputDevice.SOURCE_CLASS_BUTTON | // Keyboards
-                    InputDevice.SOURCE_CLASS_JOYSTICK | // Gamepads
-                    InputDevice.SOURCE_CLASS_POINTER | // Touchscreens and mice (w/o pointer capture)
-                    InputDevice.SOURCE_CLASS_POSITION | // Touchpads
-                    InputDevice.SOURCE_CLASS_TRACKBALL // Mice (pointer capture)
-            );
-            backgroundTouchView.requestUnbufferedDispatch(
-                    InputDevice.SOURCE_CLASS_BUTTON | // Keyboards
-                    InputDevice.SOURCE_CLASS_JOYSTICK | // Gamepads
-                    InputDevice.SOURCE_CLASS_POINTER | // Touchscreens and mice (w/o pointer capture)
-                    InputDevice.SOURCE_CLASS_POSITION | // Touchpads
-                    InputDevice.SOURCE_CLASS_TRACKBALL // Mice (pointer capture)
-            );
-        }
-
-        notificationOverlayView = findViewById(R.id.notificationOverlay);
-
-        performanceOverlayView = findViewById(R.id.performanceOverlay);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-
-        }
 
         // Warn the user if they're on a metered connection
         ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -289,9 +198,9 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
         }
 
         // Check if the user has enabled performance stats overlay
-        if (prefConfig.enablePerfOverlay) {
-            performanceOverlayView.setVisibility(View.VISIBLE);
-        }
+//        if (prefConfig.enablePerfOverlay) {
+//            performanceOverlayView.setVisibility(View.VISIBLE);
+//        }
 
         decoderRenderer = new MediaCodecDecoderRenderer(
                 this,
@@ -410,193 +319,6 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
         streamView.getHolder().addCallback(this);
     }
 
-    private void setPreferredOrientationForCurrentDisplay() {
-        Display display = getWindowManager().getDefaultDisplay();
-
-        // For semi-square displays, we use more complex logic to determine which orientation to use (if any)
-        if (PreferenceConfiguration.isSquarishScreen(display)) {
-            int desiredOrientation = Configuration.ORIENTATION_UNDEFINED;
-
-            // OSC doesn't properly support portrait displays, so don't use it in portrait mode by default
-            if (prefConfig.onscreenController) {
-                desiredOrientation = Configuration.ORIENTATION_LANDSCAPE;
-            }
-
-            // For native resolution, we will lock the orientation to the one that matches the specified resolution
-            if (PreferenceConfiguration.isNativeResolution(prefConfig.width, prefConfig.height)) {
-                if (prefConfig.width > prefConfig.height) {
-                    desiredOrientation = Configuration.ORIENTATION_LANDSCAPE;
-                }
-                else {
-                    desiredOrientation = Configuration.ORIENTATION_PORTRAIT;
-                }
-            }
-
-            if (desiredOrientation == Configuration.ORIENTATION_LANDSCAPE) {
-                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE);
-            }
-            else if (desiredOrientation == Configuration.ORIENTATION_PORTRAIT) {
-                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT);
-            }
-            else {
-                // If we don't have a reason to lock to portrait or landscape, allow any orientation
-                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_FULL_USER);
-            }
-        }
-        else {
-            // For regular displays, we always request landscape
-            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE);
-        }
-    }
-
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-
-        // Set requested orientation for possible new screen size
-        setPreferredOrientationForCurrentDisplay();
-
-       // Hide on-screen overlays in PiP mode
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (isInPictureInPictureMode()) {
-                isHidingOverlays = true;
-
-                performanceOverlayView.setVisibility(View.GONE);
-                notificationOverlayView.setVisibility(View.GONE);
-
-                // Disable sensors while in PiP mode
-
-                // Update GameManager state to indicate we're in PiP (still gaming, but interruptible)
-                UiHelper.notifyStreamEnteringPiP(this);
-            }
-            else {
-                isHidingOverlays = false;
-
-                // Restore overlays to previous state when leaving PiP
-
-
-                if (prefConfig.enablePerfOverlay) {
-                    performanceOverlayView.setVisibility(View.VISIBLE);
-                }
-
-                notificationOverlayView.setVisibility(requestedNotificationOverlayVisibility);
-
-                // Enable sensors again after exiting PiP
-
-                // Update GameManager state to indicate we're out of PiP (gaming, non-interruptible)
-                UiHelper.notifyStreamExitingPiP(this);
-            }
-        }
-    }
-
-    @TargetApi(Build.VERSION_CODES.O)
-    private PictureInPictureParams getPictureInPictureParams(boolean autoEnter) {
-        PictureInPictureParams.Builder builder =
-                new PictureInPictureParams.Builder()
-                        .setAspectRatio(new Rational(prefConfig.width, prefConfig.height))
-                        .setSourceRectHint(new Rect(
-                                streamView.getLeft(), streamView.getTop(),
-                                streamView.getRight(), streamView.getBottom()));
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            builder.setAutoEnterEnabled(autoEnter);
-            builder.setSeamlessResizeEnabled(true);
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (appName != null) {
-                builder.setTitle(appName);
-                if (pcName != null) {
-                    builder.setSubtitle(pcName);
-                }
-            }
-            else if (pcName != null) {
-                builder.setTitle(pcName);
-            }
-        }
-
-        return builder.build();
-    }
-
-    private void updatePipAutoEnter() {
-        if (!prefConfig.enablePip) {
-            return;
-        }
-
-        boolean autoEnter = connected && suppressPipRefCount == 0;
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            setPictureInPictureParams(getPictureInPictureParams(autoEnter));
-        }
-        else {
-            autoEnterPip = autoEnter;
-        }
-    }
-
-    public void setMetaKeyCaptureState(boolean enabled) {
-        // This uses custom APIs present on some Samsung devices to allow capture of
-        // meta key events while streaming.
-        try {
-            Class<?> semWindowManager = Class.forName("com.samsung.android.view.SemWindowManager");
-            Method getInstanceMethod = semWindowManager.getMethod("getInstance");
-            Object manager = getInstanceMethod.invoke(null);
-
-            if (manager != null) {
-                Class<?>[] parameterTypes = new Class<?>[2];
-                parameterTypes[0] = ComponentName.class;
-                parameterTypes[1] = boolean.class;
-                Method requestMetaKeyEventMethod = semWindowManager.getDeclaredMethod("requestMetaKeyEvent", parameterTypes);
-                requestMetaKeyEventMethod.invoke(manager, this.getComponentName(), enabled);
-            }
-            else {
-                LimeLog.warning("SemWindowManager.getInstance() returned null");
-            }
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void onUserLeaveHint() {
-        super.onUserLeaveHint();
-
-        // PiP is only supported on Oreo and later, and we don't need to manually enter PiP on
-        // Android S and later. On Android R, we will use onPictureInPictureRequested() instead.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-            if (autoEnterPip) {
-                try {
-                    // This has thrown all sorts of weird exceptions on Samsung devices
-                    // running Oreo. Just eat them and close gracefully on leave, rather
-                    // than crashing.
-                    enterPictureInPictureMode(getPictureInPictureParams(false));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
-    @Override
-    @TargetApi(Build.VERSION_CODES.R)
-    public boolean onPictureInPictureRequested() {
-        // Enter PiP when requested unless we're on Android 12 which supports auto-enter.
-        if (autoEnterPip && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            enterPictureInPictureMode(getPictureInPictureParams(false));
-        }
-        return true;
-    }
-
-    @Override
-    public void onWindowFocusChanged(boolean hasFocus) {
-        super.onWindowFocusChanged(hasFocus);
-    }
-
     private boolean isRefreshRateEqualMatch(float refreshRate) {
         return refreshRate >= prefConfig.fps &&
                 refreshRate <= prefConfig.fps + 3;
@@ -638,6 +360,7 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
         WindowManager.LayoutParams windowLayoutParams = getWindow().getAttributes();
         float displayRefreshRate;
 
+        //TODO: Check if we can use the new API for this
         // On M, we can explicitly set the optimal display mode
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             Display.Mode bestMode = display.getMode();
@@ -848,36 +571,6 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
             }
     };
 
-    private void hideSystemUi(int delay) {
-        Handler h = getWindow().getDecorView().getHandler();
-        if (h != null) {
-            h.removeCallbacks(hideSystemUi);
-            h.postDelayed(hideSystemUi, delay);
-        }
-    }
-
-    @Override
-    @TargetApi(Build.VERSION_CODES.N)
-    public void onMultiWindowModeChanged(boolean isInMultiWindowMode) {
-        super.onMultiWindowModeChanged(isInMultiWindowMode);
-
-        // In multi-window, we don't want to use the full-screen layout
-        // flag. It will cause us to collide with the system UI.
-        // This function will also be called for PiP so we can cover
-        // that case here too.
-        if (isInMultiWindowMode) {
-            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-            decoderRenderer.notifyVideoBackground();
-        }
-        else {
-            getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-            decoderRenderer.notifyVideoForeground();
-        }
-
-        // Correct the system UI visibility flags
-        hideSystemUi(50);
-    }
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -889,15 +582,7 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
         if (highPerfWifiLock != null) {
             highPerfWifiLock.release();
         }
-
-        if (connectedToUsbDriverService) {
-
-        }
-
-        // Destroy the capture provider
-
     }
-
     @Override
     protected void onPause() {
         if (isFinishing()) {
@@ -962,6 +647,7 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
                 }
 
                 if (message != null) {
+                    //TODO
                     Toast.makeText(this, message, Toast.LENGTH_LONG).show();
                 }
             }
@@ -978,123 +664,15 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
         finish();
     }
 
-    private float[] getStreamViewRelativeNormalizedXY(View view, MotionEvent event, int pointerIndex) {
-        float normalizedX = event.getX(pointerIndex);
-        float normalizedY = event.getY(pointerIndex);
-
-        // For the containing background view, we must subtract the origin
-        // of the StreamView to get video-relative coordinates.
-        if (view != streamView) {
-            normalizedX -= streamView.getX();
-            normalizedY -= streamView.getY();
-        }
-
-        normalizedX = Math.max(normalizedX, 0.0f);
-        normalizedY = Math.max(normalizedY, 0.0f);
-
-        normalizedX = Math.min(normalizedX, streamView.getWidth());
-        normalizedY = Math.min(normalizedY, streamView.getHeight());
-
-        normalizedX /= streamView.getWidth();
-        normalizedY /= streamView.getHeight();
-
-        return new float[] { normalizedX, normalizedY };
-    }
-
-    private static float normalizeValueInRange(float value, InputDevice.MotionRange range) {
-        return (value - range.getMin()) / range.getRange();
-    }
-
-    private static short getRotationDegrees(MotionEvent event, int pointerIndex) {
-        InputDevice dev = event.getDevice();
-        if (dev != null) {
-            if (dev.getMotionRange(MotionEvent.AXIS_ORIENTATION, event.getSource()) != null) {
-                short rotationDegrees = (short) Math.toDegrees(event.getOrientation(pointerIndex));
-                if (rotationDegrees < 0) {
-                    rotationDegrees += 360;
-                }
-                return rotationDegrees;
-            }
-        }
-        return MoonBridge.LI_ROT_UNKNOWN;
-    }
-
-    private static float[] polarToCartesian(float r, float theta) {
-        return new float[] { (float)(r * Math.cos(theta)), (float)(r * Math.sin(theta)) };
-    }
-
-    private static float cartesianToR(float[] point) {
-        return (float)Math.sqrt(Math.pow(point[0], 2) + Math.pow(point[1], 2));
-    }
-
-    private float[] getStreamViewNormalizedContactArea(MotionEvent event, int pointerIndex) {
-        float orientation;
-
-        // If the orientation is unknown, we'll just assume it's at a 45 degree angle and scale it by
-        // X and Y scaling factors evenly.
-        if (event.getDevice() == null || event.getDevice().getMotionRange(MotionEvent.AXIS_ORIENTATION, event.getSource()) == null) {
-            orientation = (float)(Math.PI / 4);
-        }
-        else {
-            orientation = event.getOrientation(pointerIndex);
-        }
-
-        float contactAreaMajor, contactAreaMinor;
-        switch (event.getActionMasked()) {
-            // Hover events report the tool size
-            case MotionEvent.ACTION_HOVER_ENTER:
-            case MotionEvent.ACTION_HOVER_MOVE:
-            case MotionEvent.ACTION_HOVER_EXIT:
-                contactAreaMajor = event.getToolMajor(pointerIndex);
-                contactAreaMinor = event.getToolMinor(pointerIndex);
-                break;
-
-            // Other events report contact area
-            default:
-                contactAreaMajor = event.getTouchMajor(pointerIndex);
-                contactAreaMinor = event.getTouchMinor(pointerIndex);
-                break;
-        }
-
-        // The contact area major axis is parallel to the orientation, so we simply convert
-        // polar to cartesian coordinates using the orientation as theta.
-        float[] contactAreaMajorCartesian = polarToCartesian(contactAreaMajor, orientation);
-
-        // The contact area minor axis is perpendicular to the contact area major axis (and thus
-        // the orientation), so rotate the orientation angle by 90 degrees.
-        float[] contactAreaMinorCartesian = polarToCartesian(contactAreaMinor, (float)(orientation + (Math.PI / 2)));
-
-        // Normalize the contact area to the stream view size
-        contactAreaMajorCartesian[0] = Math.min(Math.abs(contactAreaMajorCartesian[0]), streamView.getWidth()) / streamView.getWidth();
-        contactAreaMinorCartesian[0] = Math.min(Math.abs(contactAreaMinorCartesian[0]), streamView.getWidth()) / streamView.getWidth();
-        contactAreaMajorCartesian[1] = Math.min(Math.abs(contactAreaMajorCartesian[1]), streamView.getHeight()) / streamView.getHeight();
-        contactAreaMinorCartesian[1] = Math.min(Math.abs(contactAreaMinorCartesian[1]), streamView.getHeight()) / streamView.getHeight();
-
-        // Convert the normalized values back into polar coordinates
-        return new float[] { cartesianToR(contactAreaMajorCartesian), cartesianToR(contactAreaMinorCartesian) };
-    }
-
-    private static byte convertToolTypeToStylusToolType(MotionEvent event, int pointerIndex) {
-        switch (event.getToolType(pointerIndex)) {
-            case MotionEvent.TOOL_TYPE_ERASER:
-                return MoonBridge.LI_TOOL_TYPE_ERASER;
-            case MotionEvent.TOOL_TYPE_STYLUS:
-                return MoonBridge.LI_TOOL_TYPE_PEN;
-            default:
-                return MoonBridge.LI_TOOL_TYPE_UNKNOWN;
-        }
-    }
-
-
-
     @Override
     public void stageStarting(final String stage) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (spinner != null) {
-                    spinner.setMessage(getResources().getString(R.string.conn_starting) + " " + stage);
-                }
+                //TODO
+//                if (spinner != null) {
+//                    spinner.setMessage(getResources().getString(R.string.conn_starting) + " " + stage);
+//                }
             }
         });
     }
@@ -1106,8 +684,6 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
     private void stopConnection() {
         if (connecting || connected) {
             connecting = connected = false;
-            updatePipAutoEnter();
-
 
             // Update GameManager state to indicate we're no longer in game
             UiHelper.notifyStreamEnded(this);
@@ -1134,10 +710,6 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (spinner != null) {
-                    spinner.dismiss();
-                    spinner = null;
-                }
 
                 if (!displayedFailureDialog) {
                     displayedFailureDialog = true;
@@ -1175,9 +747,6 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                // Let the display go to sleep now
-                getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
 
                 if (!displayedFailureDialog) {
                     displayedFailureDialog = true;
@@ -1254,21 +823,20 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
 
                 if (connectionStatus == MoonBridge.CONN_STATUS_POOR) {
                     if (prefConfig.bitrate > 5000) {
-                        notificationOverlayView.setText(getResources().getString(R.string.slow_connection_msg));
+                        LimeLog.info("Slow connection");
+//                        notificationOverlayView.setText(getResources().getString(R.string.slow_connection_msg));
                     }
                     else {
-                        notificationOverlayView.setText(getResources().getString(R.string.poor_connection_msg));
+//                        notificationOverlayView.setText(getResources().getString(R.string.poor_connection_msg));
+                        LimeLog.info("Poor connection");
                     }
-
-                    requestedNotificationOverlayVisibility = View.VISIBLE;
+//                    requestedNotificationOverlayVisibility = View.VISIBLE;
                 }
                 else if (connectionStatus == MoonBridge.CONN_STATUS_OKAY) {
-                    requestedNotificationOverlayVisibility = View.GONE;
+                    LimeLog.info("Connection okay");
+//                    requestedNotificationOverlayVisibility = View.GONE;
                 }
 
-                if (!isHidingOverlays) {
-                    notificationOverlayView.setVisibility(requestedNotificationOverlayVisibility);
-                }
             }
         });
     }
@@ -1278,29 +846,12 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (spinner != null) {
-                    spinner.dismiss();
-                    spinner = null;
-                }
 
                 connected = true;
                 connecting = false;
-                updatePipAutoEnter();
-
-                // Hide the mouse cursor now after a short delay.
-                // Doing it before dismissing the spinner seems to be undone
-                // when the spinner gets displayed. On Android Q, even now
-                // is too early to capture. We will delay a second to allow
-                // the spinner to dismiss before capturing.
-                Handler h = new Handler();
-
-                // Keep the display on
-                getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
                 // Update GameManager state to indicate we're in game
                 UiHelper.notifyStreamConnected(Game.this);
-
-                hideSystemUi(1000);
             }
         });
 
@@ -1316,57 +867,6 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
         }
     }
 
-    @Override
-    public void displayMessage(final String message) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(Game.this, message, Toast.LENGTH_LONG).show();
-            }
-        });
-    }
-
-    @Override
-    public void displayTransientMessage(final String message) {
-        if (!prefConfig.disableWarnings) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(Game.this, message, Toast.LENGTH_LONG).show();
-                }
-            });
-        }
-    }
-
-    @Override
-    public void rumble(short controllerNumber, short lowFreqMotor, short highFreqMotor) {
-        LimeLog.info(String.format((Locale)null, "Rumble on gamepad %d: %04x %04x", controllerNumber, lowFreqMotor, highFreqMotor));
-
-
-    }
-
-    @Override
-    public void rumbleTriggers(short controllerNumber, short leftTrigger, short rightTrigger) {
-        LimeLog.info(String.format((Locale)null, "Rumble on gamepad triggers %d: %04x %04x", controllerNumber, leftTrigger, rightTrigger));
-
-
-    }
-
-    @Override
-    public void setHdrMode(boolean enabled, byte[] hdrMetadata) {
-        LimeLog.info("Display HDR mode: " + (enabled ? "enabled" : "disabled"));
-        decoderRenderer.setHdrMode(enabled, hdrMetadata);
-    }
-
-    @Override
-    public void setMotionEventState(short controllerNumber, byte motionType, short reportRateHz) {
-
-    }
-
-    @Override
-    public void setControllerLED(short controllerNumber, byte r, byte g, byte b) {
-
-    }
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
@@ -1438,20 +938,25 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
         }
     }
 
+    @Override
+    public void displayMessage(final String message) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(Game.this, message, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
 
     @Override
-    public void onSystemUiVisibilityChange(int visibility) {
-        // Don't do anything if we're not connected
-        if (!connected) {
-            return;
-        }
-
-        // This flag is set for all devices
-        if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
-            hideSystemUi(2000);
-        }
-        else if ((visibility & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0) {
-            hideSystemUi(2000);
+    public void displayTransientMessage(final String message) {
+        if (!prefConfig.disableWarnings) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(Game.this, message, Toast.LENGTH_LONG).show();
+                }
+            });
         }
     }
 
@@ -1460,10 +965,43 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                performanceOverlayView.setText(text);
             }
         });
     }
+    @Override
+    public void setHdrMode(boolean enabled, byte[] hdrMetadata) {
+        LimeLog.info("Display HDR mode: " + (enabled ? "enabled" : "disabled"));
+        decoderRenderer.setHdrMode(enabled, hdrMetadata);
+    }
+    @Override
+    public void rumble(short controllerNumber, short lowFreqMotor, short highFreqMotor) {
+        LimeLog.info(String.format((Locale)null, "Rumble on gamepad %d: %04x %04x", controllerNumber, lowFreqMotor, highFreqMotor));
 
 
+    }
+
+    @Override
+    public void rumbleTriggers(short controllerNumber, short leftTrigger, short rightTrigger) {
+        LimeLog.info(String.format((Locale)null, "Rumble on gamepad triggers %d: %04x %04x", controllerNumber, leftTrigger, rightTrigger));
+
+
+    }
+
+    @Override
+    public void setMotionEventState(short controllerNumber, byte motionType, short reportRateHz) {
+
+    }
+
+    @Override
+    public void setControllerLED(short controllerNumber, byte r, byte g, byte b) {
+
+    }
+    @Override
+    public void onPointerCaptureChanged(boolean hasCapture) {
+        super.onPointerCaptureChanged(hasCapture);
+    }
+    @Override
+    public void onSystemUiVisibilityChange(int visibility) {
+
+    }
 }
