@@ -286,10 +286,13 @@ public class AppPlugin extends Activity {
                 }
 
                 LimeLog.todo("AppList Updated finish");
-                LimeLog.severe("App count" + m_AppList.getCount());
-                final AppPlugin.AppObject app = (AppPlugin.AppObject) m_AppList.getItem(0);
-                LimeLog.info("Starting app: " + app.app.getAppName());
-                ServerHelper.doStart(mActivity, app.app, computer, managerBinder);
+                int count = m_AppList.getCount();
+                LimeLog.severe("App count" + count);
+                if (count > 0) {
+                    final AppPlugin.AppObject app = (AppPlugin.AppObject) m_AppList.getItem(0);
+                    LimeLog.info("Starting app: " + app.app.getAppName());
+                    ServerHelper.doStart(mActivity, app.app, computer, managerBinder);
+                }
             }
         });
     }

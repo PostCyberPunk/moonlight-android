@@ -28,6 +28,7 @@ import android.content.res.Configuration;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.view.View;
@@ -129,6 +130,13 @@ public class PcPlugin extends Activity {
                 //ShowComputerName
             }
         });
+        Handler h = new Handler();
+        h.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                fakeStart();
+            }
+        }, 1000);
 
     }
 
@@ -352,19 +360,21 @@ public class PcPlugin extends Activity {
                 LimeLog.todo("Pairing complete");
                 final String toastMessage = message;
                 final boolean toastSuccess = success;
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        //TODO:?? how do we handle this?
-                        if (toastSuccess) {
-                            // Open the app list after a successful pairing attempt
-                            doAppList(computer, true, false);
-                        } else {
-                            // Start polling again if we're still in the foreground
-                            startComputerUpdates();
-                        }
-                    }
-                });
+
+                startComputerUpdates();
+//                runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        //TODO:?? how do we handle this?
+//                        if (toastSuccess) {
+//                            // Open the app list after a successful pairing attempt
+//                            doAppList(computer, true, false);
+//                        } else {
+//                            // Start polling again if we're still in the foreground
+//                            startComputerUpdates();
+//                        }
+//                    }
+//                });
             }
         }).start();
     }
@@ -409,7 +419,6 @@ public class PcPlugin extends Activity {
 
         }
         LimeLog.todo("Update the computer list view");
-        fakeStart();
     }
 
     public static class ComputerObject {
@@ -445,7 +454,12 @@ public class PcPlugin extends Activity {
         if (pcList.getCount() == 0) {
             fakeAdd();
         } else {
-            fakePair();
+            PcPlugin.ComputerObject computer = (PcPlugin.ComputerObject) pcList.getItem(0);
+            if (computer.details.pairState == PairState.NOT_PAIRED) {
+                fakePair();
+            } else {
+                doAppList(computer.details, false, false);
+            }
         }
     }
     //End of class-----------
