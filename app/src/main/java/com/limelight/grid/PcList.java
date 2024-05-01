@@ -1,4 +1,6 @@
-package com.limelight;
+package com.limelight.grid;
+
+import com.limelight.PcPlugin;
 
 import java.util.ArrayList;
 import java.util.Collections;
