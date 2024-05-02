@@ -6,7 +6,7 @@ import java.util.List;
 
 import com.limelight.computers.ComputerManagerListener;
 import com.limelight.computers.ComputerManagerService;
-import com.limelight.grid.AppList;
+import com.limelight.types.AppList;
 import com.limelight.nvstream.http.ComputerDetails;
 import com.limelight.nvstream.http.NvApp;
 import com.limelight.nvstream.http.NvHTTP;

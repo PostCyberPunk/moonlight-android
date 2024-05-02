@@ -1,4 +1,4 @@
-package com.limelight.grid;
+package com.limelight.types;
 
 import com.limelight.PcPlugin;
 
