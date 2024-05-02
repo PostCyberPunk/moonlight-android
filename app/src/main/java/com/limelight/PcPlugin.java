@@ -37,7 +37,7 @@ public class PcPlugin extends UnityPluginObject {
     private AddComputerManually m_addComputerManually;
     private PcList pcList;
     private ComputerManagerService.ComputerManagerBinder managerBinder;
-    private boolean freezeUpdates, runningPolling, inForeground,is;
+    private boolean freezeUpdates, runningPolling, inForeground, is;
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder binder) {
             final ComputerManagerService.ComputerManagerBinder localBinder =
@@ -104,6 +104,10 @@ public class PcPlugin extends UnityPluginObject {
         if (m_addComputerManually != null) {
             m_addComputerManually.Destroy();
             m_addComputerManually = null;
+        }
+        if (waitAddPc != null) {
+            waitAddPc.interrupt();
+            waitAddPc = null;
         }
     }
 
@@ -198,7 +202,7 @@ public class PcPlugin extends UnityPluginObject {
                 } catch (UnknownHostException e) {
                     LimeLog.todo("Pairing failed: Unknown host");
                 } catch (FileNotFoundException e) {
-                    LimeLog.todo("Pairing failed: File Not Found:"e.getMessage());
+                    LimeLog.todo("Pairing failed: File Not Found:" + e.getMessage());
                 } catch (XmlPullParserException | IOException e) {
                     e.printStackTrace();
                     LimeLog.todo("Pairing failed: " + e.getMessage());
@@ -301,12 +305,14 @@ public class PcPlugin extends UnityPluginObject {
     }
 
     //Try
+
+
     private void fakeAdd() {
-        m_addComputerManually = new AddComputerManually(mActivity);
+        m_addComputerManually = new AddComputerManually(mActivity, this);
     }
 
-    private void fakePair() {
-        LimeLog.severe("????");
+    public void fakePair() {
+        LimeLog.severe("Start fakePair");
         ComputerObject computer = (ComputerObject) pcList.getItem(0);
         doPair(computer.details);
     }

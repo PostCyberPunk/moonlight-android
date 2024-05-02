@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import com.limelight.LimeLog;
+import com.limelight.PcPlugin;
 import com.limelight.computers.ComputerManagerService;
 import com.limelight.nvstream.http.ComputerDetails;
 import com.limelight.nvstream.http.NvHTTP;
@@ -172,18 +173,14 @@ public class AddComputerManually {
             }
             LimeLog.todo("Port test result: " + portTestResult);
         } else {
-            mActivity.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    LimeLog.todo("Successfully added computer: " + rawUserInput);
-
-                    // Close the activity
-                    //DestoryMe here
-                    Destroy();
-                }
-            });
+            LimeLog.todo("Seems sucess?" + rawUserInput);
         }
-
+        if (success) {
+            isSuccess = true;
+            LimeLog.todo("Successfully added computer: " + rawUserInput);
+            mPlugin.fakePair();
+        }
+        Destroy();
     }
 
     private void startAddThread() {
@@ -230,9 +227,11 @@ public class AddComputerManually {
         }
     }
 
-    public AddComputerManually(Activity activity) {
-        mActivity = activity;
+    private PcPlugin mPlugin;
 
+    public AddComputerManually(Activity activity, PcPlugin plugin) {
+        mActivity = activity;
+        mPlugin = plugin;
         //TRY:fix ip
         computersToAdd.add("192.168.123.192");
         // Bind to the ComputerManager service
