@@ -16,7 +16,6 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.Toast;
 
 import com.limelight.binding.PlatformBinding;
 import com.limelight.binding.audio.AndroidAudioRenderer;
@@ -168,14 +167,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
                 if (!willStreamHdr) {
                     // Nope, no HDR for us :(
-                    Toast.makeText(this, "Display does not support HDR10", Toast.LENGTH_LONG).show();
+                    LimeLog.todo("Display does not support HDR10");
                 }
             } else {
-                Toast.makeText(this, "HDR requires Android 7.0 or later", Toast.LENGTH_LONG).show();
+                LimeLog.todo("HDR requires Android 7.0 or later");
             }
         }
 
-        // Check if the user has enabled performance stats overlay
+//         Check if the user has enabled performance stats overlay
 //        if (prefConfig.enablePerfOverlay) {
 //            performanceOverlayView.setVisibility(View.VISIBLE);
 //        }
@@ -203,17 +202,17 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // Don't stream HDR if the decoder can't support it
         if (willStreamHdr && !decoderRenderer.isHevcMain10Hdr10Supported() && !decoderRenderer.isAv1Main10Supported()) {
             willStreamHdr = false;
-            Toast.makeText(this, "Decoder does not support HDR10 profile", Toast.LENGTH_LONG).show();
+            LimeLog.todo("Decoder does not support HDR10 profile");
         }
 
         // Display a message to the user if HEVC was forced on but we still didn't find a decoder
         if (prefConfig.videoFormat == PreferenceConfiguration.FormatOption.FORCE_HEVC && !decoderRenderer.isHevcSupported()) {
-            Toast.makeText(this, "No HEVC decoder found", Toast.LENGTH_LONG).show();
+            LimeLog.todo("No HEVC Decoder found");
         }
 
         // Display a message to the user if AV1 was forced on but we still didn't find a decoder
         if (prefConfig.videoFormat == PreferenceConfiguration.FormatOption.FORCE_AV1 && !decoderRenderer.isAv1Supported()) {
-            Toast.makeText(this, "No AV1 decoder found", Toast.LENGTH_LONG).show();
+            LimeLog.todo("No Av1 Decoder found");
         }
 
         // H.264 is always supported
@@ -568,45 +567,45 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             displayedFailureDialog = true;
             stopConnection();
 
-            if (prefConfig.enableLatencyToast) {
-                int averageEndToEndLat = decoderRenderer.getAverageEndToEndLatency();
-                int averageDecoderLat = decoderRenderer.getAverageDecoderLatency();
-                String message = null;
-                if (averageEndToEndLat > 0) {
-                    message = getResources().getString(R.string.conn_client_latency) + " " + averageEndToEndLat + " ms";
-                    if (averageDecoderLat > 0) {
-                        message += " (" + getResources().getString(R.string.conn_client_latency_hw) + " " + averageDecoderLat + " ms)";
-                    }
-                } else if (averageDecoderLat > 0) {
-                    message = getResources().getString(R.string.conn_hardware_latency) + " " + averageDecoderLat + " ms";
-                }
-
-                // Add the video codec to the post-stream toast
-                if (message != null) {
-                    message += " [";
-
-                    if ((videoFormat & MoonBridge.VIDEO_FORMAT_MASK_H264) != 0) {
-                        message += "H.264";
-                    } else if ((videoFormat & MoonBridge.VIDEO_FORMAT_MASK_H265) != 0) {
-                        message += "HEVC";
-                    } else if ((videoFormat & MoonBridge.VIDEO_FORMAT_MASK_AV1) != 0) {
-                        message += "AV1";
-                    } else {
-                        message += "UNKNOWN";
-                    }
-
-                    if ((videoFormat & MoonBridge.VIDEO_FORMAT_MASK_10BIT) != 0) {
-                        message += " HDR";
-                    }
-
-                    message += "]";
-                }
-
-                if (message != null) {
-                    //TODO
-                    Toast.makeText(this, message, Toast.LENGTH_LONG).show();
-                }
-            }
+//            if (prefConfig.enableLatencyToast) {
+//                int averageEndToEndLat = decoderRenderer.getAverageEndToEndLatency();
+//                int averageDecoderLat = decoderRenderer.getAverageDecoderLatency();
+//                String message = null;
+//                if (averageEndToEndLat > 0) {
+//                    message = getResources().getString(R.string.conn_client_latency) + " " + averageEndToEndLat + " ms";
+//                    if (averageDecoderLat > 0) {
+//                        message += " (" + getResources().getString(R.string.conn_client_latency_hw) + " " + averageDecoderLat + " ms)";
+//                    }
+//                } else if (averageDecoderLat > 0) {
+//                    message = getResources().getString(R.string.conn_hardware_latency) + " " + averageDecoderLat + " ms";
+//                }
+//
+//                // Add the video codec to the post-stream toast
+//                if (message != null) {
+//                    message += " [";
+//
+//                    if ((videoFormat & MoonBridge.VIDEO_FORMAT_MASK_H264) != 0) {
+//                        message += "H.264";
+//                    } else if ((videoFormat & MoonBridge.VIDEO_FORMAT_MASK_H265) != 0) {
+//                        message += "HEVC";
+//                    } else if ((videoFormat & MoonBridge.VIDEO_FORMAT_MASK_AV1) != 0) {
+//                        message += "AV1";
+//                    } else {
+//                        message += "UNKNOWN";
+//                    }
+//
+//                    if ((videoFormat & MoonBridge.VIDEO_FORMAT_MASK_10BIT) != 0) {
+//                        message += " HDR";
+//                    }
+//
+//                    message += "]";
+//                }
+//
+//                if (message != null) {
+//                    //TODO
+//                    Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+//                }
+//            }
 
             // Clear the tombstone count if we terminated normally
             if (!reportedCrash && tombstonePrefs.getInt("CrashCount", 0) != 0) {
@@ -673,7 +672,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
                     // If video initialization failed and the surface is still valid, display extra information for the user
                     if (stage.contains("video") && streamView.getHolder().getSurface().isValid()) {
-                        Toast.makeText(Game.this, getResources().getText(R.string.video_decoder_init_failed), Toast.LENGTH_LONG).show();
+                        LimeLog.todo("Video decoder init failed: " + errorCode);
                     }
 
                     String dialogText = getResources().getString(R.string.conn_error_msg) + " " + stage + " (error " + errorCode + ")";
