@@ -109,29 +109,29 @@
             <meta-data android:name="WindowManagerPreference:FreeformWindowSize" android:value="system-default" />
             <meta-data android:name="WindowManagerPreference:FreeformWindowOrientation" android:value="landscape" />
         </activity>
-        <activity
-            android:name=".Game"
-            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|layoutDirection"
-            android:noHistory="true"
-            android:supportsPictureInPicture="true"
-            android:resizeableActivity="true"
-            android:launchMode="singleTask"
-            android:excludeFromRecents="true"
-            android:theme="@style/StreamTheme"
-            android:preferMinimalPostProcessing="true">
+<!--        <activity-->
+<!--            android:name=".Game"-->
+<!--            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|layoutDirection"-->
+<!--            android:noHistory="true"-->
+<!--            android:supportsPictureInPicture="true"-->
+<!--            android:resizeableActivity="true"-->
+<!--            android:launchMode="singleTask"-->
+<!--            android:excludeFromRecents="true"-->
+<!--            android:theme="@style/StreamTheme"-->
+<!--            android:preferMinimalPostProcessing="true">-->
 
-            <meta-data android:name="WindowManagerPreference:FreeformWindowSize" android:value="system-default" />
-            <meta-data android:name="WindowManagerPreference:FreeformWindowOrientation" android:value="landscape" />
+<!--            <meta-data android:name="WindowManagerPreference:FreeformWindowSize" android:value="system-default" />-->
+<!--            <meta-data android:name="WindowManagerPreference:FreeformWindowOrientation" android:value="landscape" />-->
 
-            <!-- Special metadata for NVIDIA Shield devices to prevent input buffering
-                 and most importantly, opt out of mouse acceleration while streaming -->
-            <meta-data
-                android:name="com.nvidia.immediateInput"
-                android:value="true" />
-            <meta-data
-                android:name="com.nvidia.rawCursorInput"
-                android:value="true" />
-        </activity>
+<!--            &lt;!&ndash; Special metadata for NVIDIA Shield devices to prevent input buffering-->
+<!--                 and most importantly, opt out of mouse acceleration while streaming &ndash;&gt;-->
+<!--            <meta-data-->
+<!--                android:name="com.nvidia.immediateInput"-->
+<!--                android:value="true" />-->
+<!--            <meta-data-->
+<!--                android:name="com.nvidia.rawCursorInput"-->
+<!--                android:value="true" />-->
+<!--        </activity>-->
 
         <service
             android:name=".discovery.DiscoveryService"

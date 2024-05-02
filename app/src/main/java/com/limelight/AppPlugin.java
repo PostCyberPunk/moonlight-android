@@ -281,7 +281,7 @@ public class AppPlugin extends UnityPluginObject {
                 if (count > 0) {
                     final AppObject app = (AppObject) m_AppList.getItem(0);
                     LimeLog.info("Starting app: " + app.app.getAppName());
-                    ServerHelper.doStart(mActivity, app.app, computer, managerBinder);
+                    ServerHelper.doStart(mPluginMain, app.app, computer, managerBinder);
                 }
             }
         });

@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.widget.Toast;
 
 import com.limelight.Game;
+import com.limelight.LimeLog;
+import com.limelight.PluginMain;
 import com.limelight.R;
 import com.limelight.binding.PlatformBinding;
 import com.limelight.computers.ComputerManagerService;
@@ -26,7 +28,7 @@ public class ServerHelper {
 
     public static ComputerDetails.AddressTuple getCurrentAddressFromComputer(ComputerDetails computer) throws IOException {
         if (computer.activeAddress == null) {
-            throw new IOException("No active address for "+computer.name);
+            throw new IOException("No active address for " + computer.name);
         }
         return computer.activeAddress;
     }
@@ -72,13 +74,14 @@ public class ServerHelper {
         return intent;
     }
 
-    public static void doStart(Activity parent, NvApp app, ComputerDetails computer,
+    public static void doStart(PluginMain parent, NvApp app, ComputerDetails computer,
                                ComputerManagerService.ComputerManagerBinder managerBinder) {
         if (computer.state == ComputerDetails.State.OFFLINE || computer.activeAddress == null) {
-            Toast.makeText(parent, parent.getResources().getString(R.string.pair_pc_offline), Toast.LENGTH_SHORT).show();
+            LimeLog.todo("Attempted to start app on offline computer");
+//            Toast.makeText(parent, parent.getResources().getString(R.string.pair_pc_offline), Toast.LENGTH_SHORT).show();
             return;
         }
-        parent.startActivity(createStartIntent(parent, app, computer, managerBinder));
+        parent.ActivateGamePlugin(createStartIntent(parent, app, computer, managerBinder));
     }
 
     public static void doNetworkTest(final Activity parent) {
@@ -96,11 +99,9 @@ public class ServerHelper {
                 String dialogSummary;
                 if (ret == MoonBridge.ML_TEST_RESULT_INCONCLUSIVE) {
                     dialogSummary = parent.getResources().getString(R.string.nettest_text_inconclusive);
-                }
-                else if (ret == 0) {
+                } else if (ret == 0) {
                     dialogSummary = parent.getResources().getString(R.string.nettest_text_success);
-                }
-                else {
+                } else {
                     dialogSummary = parent.getResources().getString(R.string.nettest_text_failure);
                     dialogSummary += MoonBridge.stringifyPortFlags(ret, "\n");
                 }
@@ -136,9 +137,8 @@ public class ServerHelper {
                     if (e.getErrorCode() == 599) {
                         message = "This session wasn't started by this device," +
                                 " so it cannot be quit. End streaming on the original " +
-                                "device or the PC itself. (Error code: "+e.getErrorCode()+")";
-                    }
-                    else {
+                                "device or the PC itself. (Error code: " + e.getErrorCode() + ")";
+                    } else {
                         message = e.getMessage();
                     }
                 } catch (UnknownHostException e) {

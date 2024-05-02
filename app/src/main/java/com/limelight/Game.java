@@ -4,6 +4,7 @@ package com.limelight;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
@@ -32,6 +33,7 @@ import com.limelight.nvstream.http.NvHTTP;
 import com.limelight.nvstream.jni.MoonBridge;
 import com.limelight.preferences.GlPreferences;
 import com.limelight.preferences.PreferenceConfiguration;
+import com.limelight.types.UnityPluginObject;
 import com.limelight.ui.StreamView;
 import com.limelight.utils.ServerHelper;
 import com.limelight.utils.UiHelper;
@@ -43,7 +45,7 @@ import java.security.cert.X509Certificate;
 import java.util.Locale;
 
 
-public class Game extends Activity implements SurfaceHolder.Callback,
+public class Game extends UnityPluginObject implements SurfaceHolder.Callback,
         NvConnectionListener, PerfOverlayListener {
     private PreferenceConfiguration prefConfig;
     private SharedPreferences tombstonePrefs;
@@ -73,27 +75,38 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public static final String EXTRA_APP_HDR = "HDR";
     public static final String EXTRA_SERVER_CERT = "ServerCert";
 
+    public Game(PluginMain p, Activity a, Intent i) {
+        super(p, a, i);
+        onCreate();
+    }
+
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    protected void onCreate() {
 
         // Inflate the content
-        setContentView(R.layout.activity_game);
+//        setContentView(R.layout.activity_game);
 
         // Start the spinner
 
         // Read the stream preferences
-        prefConfig = PreferenceConfiguration.readPreferences(this);
+        prefConfig = PreferenceConfiguration.readPreferences(mActivity);
         tombstonePrefs = Game.this.getSharedPreferences("DecoderTombstone", 0);
 
         // Listen for non-touch events on the game surface
-        streamView = findViewById(R.id.surfaceView);
+//        streamView = findViewById(R.id.surfaceView);
+        mActivity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                streamView = new StreamView(mActivity);
+                mPluginMain.mRelativeLayout.addView(streamView);
+            }
+        });
 
 
         // Warn the user if they're on a metered connection
         ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         if (connMgr.isActiveNetworkMetered()) {
-            displayTransientMessage(getResources().getString(R.string.conn_metered));
+            LimeLog.todo("Metered connection detected");
         }
 
         // Make sure Wi-Fi is fully powered up
@@ -114,16 +127,16 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             e.printStackTrace();
         }
 
-        appName = Game.this.getIntent().getStringExtra(EXTRA_APP_NAME);
-        pcName = Game.this.getIntent().getStringExtra(EXTRA_PC_NAME);
+        appName = getIntent().getStringExtra(EXTRA_APP_NAME);
+        pcName = getIntent().getStringExtra(EXTRA_PC_NAME);
 
-        String host = Game.this.getIntent().getStringExtra(EXTRA_HOST);
-        int port = Game.this.getIntent().getIntExtra(EXTRA_PORT, NvHTTP.DEFAULT_HTTP_PORT);
-        int httpsPort = Game.this.getIntent().getIntExtra(EXTRA_HTTPS_PORT, 0); // 0 is treated as unknown
-        int appId = Game.this.getIntent().getIntExtra(EXTRA_APP_ID, StreamConfiguration.INVALID_APP_ID);
-        String uniqueId = Game.this.getIntent().getStringExtra(EXTRA_UNIQUEID);
-        boolean appSupportsHdr = Game.this.getIntent().getBooleanExtra(EXTRA_APP_HDR, false);
-        byte[] derCertData = Game.this.getIntent().getByteArrayExtra(EXTRA_SERVER_CERT);
+        String host = getIntent().getStringExtra(EXTRA_HOST);
+        int port = getIntent().getIntExtra(EXTRA_PORT, NvHTTP.DEFAULT_HTTP_PORT);
+        int httpsPort = getIntent().getIntExtra(EXTRA_HTTPS_PORT, 0); // 0 is treated as unknown
+        int appId = getIntent().getIntExtra(EXTRA_APP_ID, StreamConfiguration.INVALID_APP_ID);
+        String uniqueId = getIntent().getStringExtra(EXTRA_UNIQUEID);
+        boolean appSupportsHdr = getIntent().getBooleanExtra(EXTRA_APP_HDR, false);
+        byte[] derCertData = getIntent().getByteArrayExtra(EXTRA_SERVER_CERT);
 
         app = new NvApp(appName != null ? appName : "app", appId, appSupportsHdr);
 
@@ -143,8 +156,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
 
         // Initialize the MediaCodec helper before creating the decoder
-        GlPreferences glPrefs = GlPreferences.readPreferences(this);
-        MediaCodecHelper.initialize(this, glPrefs.glRenderer);
+        GlPreferences glPrefs = GlPreferences.readPreferences(mActivity);
+        MediaCodecHelper.initialize(mActivity, glPrefs.glRenderer);
 
         // Check if the user has enabled HDR
         boolean willStreamHdr = false;
@@ -180,7 +193,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 //        }
 
         decoderRenderer = new MediaCodecDecoderRenderer(
-                this,
+                mActivity,
                 prefConfig,
                 new CrashListener() {
                     @Override
@@ -277,7 +290,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         conn = new NvConnection(getApplicationContext(),
                 new ComputerDetails.AddressTuple(host, port),
                 httpsPort, uniqueId, config,
-                PlatformBinding.getCryptoProvider(this), serverCert);
+                PlatformBinding.getCryptoProvider(mActivity), serverCert);
 
         if (!decoderRenderer.isAvcSupported()) {
             // If we can't find an AVC decoder, we can't proceed
@@ -517,7 +530,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
             // In multi-window mode on N+, we need to drop our layout flags or we'll
             // be drawing underneath the system UI.
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInMultiWindowMode()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && mActivity.isInMultiWindowMode()) {
                 Game.this.getWindow().getDecorView().setSystemUiVisibility(
                         View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
             } else {
@@ -534,8 +547,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     };
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
+    public void onDestroy() {
+//        super.onDestroy();
 
 
         if (lowLatencyWifiLock != null) {
@@ -547,17 +560,15 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     }
 
     @Override
-    protected void onPause() {
-        if (isFinishing()) {
-            // Stop any further input device notifications before we lose focus (and pointer capture)
-            // Ungrab input to prevent further input device notifications
-        }
-
-        super.onPause();
+    public void onPause() {
     }
 
     @Override
-    protected void onStop() {
+    public void onResume() {
+    }
+
+    @Override
+    public void onStop() {
         super.onStop();
 
 
@@ -621,7 +632,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public void stageStarting(final String stage) {
-        runOnUiThread(new Runnable() {
+        mActivity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 //TODO
@@ -641,7 +652,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             connecting = connected = false;
 
             // Update GameManager state to indicate we're no longer in game
-            UiHelper.notifyStreamEnded(this);
+//            UiHelper.notifyStreamEnded(this);
 
             // Stop may take a few hundred ms to do some network I/O to tell
             // the server we're going away and clean up. Let it run in a separate
@@ -662,7 +673,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // This does network I/O, so don't do it on the main thread.
         final int portTestResult = MoonBridge.testClientConnectivity(ServerHelper.CONNECTION_TEST_SERVER, 443, portFlags);
 
-        runOnUiThread(new Runnable() {
+        mActivity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
 
@@ -699,7 +710,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         final int portFlags = MoonBridge.getPortFlagsFromTerminationErrorCode(errorCode);
         final int portTestResult = MoonBridge.testClientConnectivity(ServerHelper.CONNECTION_TEST_SERVER, 443, portFlags);
 
-        runOnUiThread(new Runnable() {
+        mActivity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
 
@@ -764,7 +775,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public void connectionStatusUpdate(final int connectionStatus) {
-        runOnUiThread(new Runnable() {
+        mActivity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 if (prefConfig.disableWarnings) {
@@ -791,7 +802,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public void connectionStarted() {
-        runOnUiThread(new Runnable() {
+        mActivity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
 
@@ -799,7 +810,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 connecting = false;
 
                 // Update GameManager state to indicate we're in game
-                UiHelper.notifyStreamConnected(Game.this);
+//                UiHelper.notifyStreamConnected(Game.this);
             }
         });
 
@@ -826,10 +837,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             attemptedConnection = true;
 
             // Update GameManager state to indicate we're "loading" while connecting
-            UiHelper.notifyStreamConnecting(Game.this);
+//            UiHelper.notifyStreamConnecting(Game.this);
 
             decoderRenderer.setRenderTarget(holder);
-            conn.start(new AndroidAudioRenderer(Game.this, prefConfig.enableAudioFx),
+            conn.start(new AndroidAudioRenderer(mActivity, prefConfig.enableAudioFx),
                     decoderRenderer, Game.this);
         }
     }
@@ -929,8 +940,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     }
 
-    @Override
-    public void onPointerCaptureChanged(boolean hasCapture) {
-        super.onPointerCaptureChanged(hasCapture);
-    }
+//    @Override
+//    public void onPointerCaptureChanged(boolean hasCapture) {
+//        super.onPointerCaptureChanged(hasCapture);
+//    }
 }

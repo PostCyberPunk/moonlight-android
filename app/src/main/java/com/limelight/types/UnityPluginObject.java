@@ -1,9 +1,17 @@
 package com.limelight.types;
 
 import android.app.Activity;
+import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.content.res.Resources;
+import android.net.ConnectivityManager;
+import android.service.quickaccesswallet.GetWalletCardsCallback;
+import android.view.Window;
+import android.view.WindowManager;
 
 import com.limelight.PluginMain;
 
@@ -66,5 +74,28 @@ public abstract class UnityPluginObject {
 
     protected File getCacheDir() {
         return mActivity.getCacheDir();
+    }
+
+    protected Object getSystemService(String name) {
+        return mActivity.getSystemService(name);
+    }
+
+    protected Context getApplicationContext() {
+        return mActivity.getApplicationContext();
+    }
+
+    protected WindowManager getWindowManager() {
+        return mActivity.getWindowManager();
+    }
+
+    protected Window getWindow() {
+        return mActivity.getWindow();
+    }
+
+    protected PackageManager getPackageManager() {
+        return mActivity.getPackageManager();
+    }
+    protected Resources getResources() {
+        return mActivity.getResources();
     }
 }

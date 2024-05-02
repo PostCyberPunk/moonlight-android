@@ -2,8 +2,13 @@ package com.limelight;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Color;
+import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.view.Surface;
+import android.view.SurfaceHolder;
+import android.widget.RelativeLayout;
 
 import com.limelight.types.UnityPluginObject;
 
@@ -13,6 +18,7 @@ import java.util.List;
 public class PluginMain extends Activity {
     private AppPlugin m_AppPlugin;
     private PcPlugin m_PcPlugin;
+    private Game m_Game;
     private final List<UnityPluginObject> m_PluginList = new ArrayList<>();
     private Activity mActivity;
 
@@ -23,6 +29,7 @@ public class PluginMain extends Activity {
         mActivity = this;
 
         PreferenceManager.setDefaultValues(mActivity, R.xml.preferences, false);
+        initView();
         ActivatePcPlugin();
     }
 
@@ -92,13 +99,53 @@ public class PluginMain extends Activity {
         LimeLog.info("AppPlugin stopped");
     }
 
+    public void ActivateGamePlugin(Intent i) {
+        LimeLog.info("GamePlugin starting");
+        m_Game = new Game(this, mActivity, i);
+        m_PluginList.add(m_Game);
+    }
+
+    public void StopGamePlugin() {
+        if (m_Game == null)
+            return;
+        m_PluginList.remove(m_Game);
+        m_Game.onDestroy();
+        m_Game = null;
+        LimeLog.info("GamePlugin stopped");
+    }
+
     public void DestroyPlugin(UnityPluginObject plugin) {
         if (plugin == null)
             return;
         //call stop method base on the plugin types
-        if (plugin instanceof AppPlugin) { StopAppPlugin();
+        if (plugin instanceof AppPlugin) {
+            StopAppPlugin();
         } else if (plugin instanceof PcPlugin) {
             StopPcPlugin();
+        } else if (plugin instanceof Game) {
+            StopGamePlugin();
+        }
+    }
+
+    public GLSurfaceView mGLSurfaceView;
+    public RelativeLayout mRelativeLayout;
+
+    private void initView() {
+        mActivity.runOnUiThread(() -> {
+            mRelativeLayout = new RelativeLayout(mActivity);
+            mRelativeLayout.setBackgroundColor(Color.GREEN);
+            mGLSurfaceView = new GLSurfaceView(mActivity);
+            mGLSurfaceView.setEGLContextClientVersion(3);
+            mGLSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 0, 0);
+            mGLSurfaceView.setPreserveEGLContextOnPause(true);
+            mGLSurfaceView.setBackgroundColor(0xff000000);
+
+//            mRelativeLayout.addView(mGLSurfaceView);
+        });
+    }
+
+    private class ViewManager {
+        public ViewManager() {
         }
     }
 }
