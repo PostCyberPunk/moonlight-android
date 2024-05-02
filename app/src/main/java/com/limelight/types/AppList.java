@@ -8,23 +8,23 @@ import java.util.Comparator;
 import java.util.List;
 
 public class AppList {
-    private ArrayList<AppPlugin.AppObject> allApps = new ArrayList<>();
-    private static void sortList(List<AppPlugin.AppObject> list) {
-        Collections.sort(list, new Comparator<AppPlugin.AppObject>() {
+    private ArrayList<AppObject> allApps = new ArrayList<>();
+    private static void sortList(List<AppObject> list) {
+        Collections.sort(list, new Comparator<AppObject>() {
             @Override
-            public int compare(AppPlugin.AppObject lhs, AppPlugin.AppObject rhs) {
+            public int compare(AppObject lhs, AppObject rhs) {
                 return lhs.app.getAppName().toLowerCase().compareTo(rhs.app.getAppName().toLowerCase());
             }
         });
     }
 
-    public void addApp(AppPlugin.AppObject app) {
+    public void addApp(AppObject app) {
         // Always add the app to the all apps list
         allApps.add(app);
         sortList(allApps);
     }
 
-    public void removeApp(AppPlugin.AppObject app) {
+    public void removeApp(AppObject app) {
         allApps.remove(app);
     }
 

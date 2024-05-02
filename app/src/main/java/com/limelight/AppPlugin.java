@@ -11,6 +11,7 @@ import com.limelight.nvstream.http.ComputerDetails;
 import com.limelight.nvstream.http.NvApp;
 import com.limelight.nvstream.http.NvHTTP;
 import com.limelight.nvstream.http.PairingManager;
+import com.limelight.types.AppObject;
 import com.limelight.utils.CacheHelper;
 import com.limelight.utils.Dialog;
 import com.limelight.utils.ServerHelper;
@@ -265,7 +266,7 @@ public class AppPlugin extends Activity {
 
                 // Look through our current app list to tag the running app
                 for (int i = 0; i < m_AppList.getCount(); i++) {
-                    AppPlugin.AppObject existingApp = (AppPlugin.AppObject) m_AppList.getItem(i);
+                    AppObject existingApp = (AppObject) m_AppList.getItem(i);
 
                     // There can only be one or zero apps running.
                     if (existingApp.isRunning &&
@@ -289,7 +290,7 @@ public class AppPlugin extends Activity {
                 int count = m_AppList.getCount();
                 LimeLog.severe("App count" + count);
                 if (count > 0) {
-                    final AppPlugin.AppObject app = (AppPlugin.AppObject) m_AppList.getItem(0);
+                    final AppObject app = (AppObject) m_AppList.getItem(0);
                     LimeLog.info("Starting app: " + app.app.getAppName());
                     ServerHelper.doStart(mActivity, app.app, computer, managerBinder);
                 }
@@ -309,7 +310,7 @@ public class AppPlugin extends Activity {
 
                     // Try to update an existing app in the list first
                     for (int i = 0; i < m_AppList.getCount(); i++) {
-                        AppPlugin.AppObject existingApp = (AppPlugin.AppObject) m_AppList.getItem(i);
+                        AppObject existingApp = (AppObject) m_AppList.getItem(i);
                         if (existingApp.app.getAppId() == app.getAppId()) {
                             // Found the app; update its properties
                             if (!existingApp.app.getAppName().equals(app.getAppName())) {
@@ -324,7 +325,7 @@ public class AppPlugin extends Activity {
 
                     if (!foundExistingApp) {
                         // This app must be new
-                        m_AppList.addApp(new AppPlugin.AppObject(app));
+                        m_AppList.addApp(new AppObject(app));
 
                         updated = true;
                     }
@@ -334,7 +335,7 @@ public class AppPlugin extends Activity {
                 int i = 0;
                 while (i < m_AppList.getCount()) {
                     boolean foundExistingApp = false;
-                    AppPlugin.AppObject existingApp = (AppPlugin.AppObject) m_AppList.getItem(i);
+                    AppObject existingApp = (AppObject) m_AppList.getItem(i);
 
                     // Check if this app is in the latest list
                     for (NvApp app : appList) {
@@ -361,20 +362,4 @@ public class AppPlugin extends Activity {
         });
     }
 
-    public static class AppObject {
-        public final NvApp app;
-        public boolean isRunning;
-
-        public AppObject(NvApp app) {
-            if (app == null) {
-                throw new IllegalArgumentException("app must not be null");
-            }
-            this.app = app;
-        }
-
-        @Override
-        public String toString() {
-            return app.getAppName();
-        }
-    }
 }
