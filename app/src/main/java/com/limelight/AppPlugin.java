@@ -1,5 +1,7 @@
 package com.limelight;
 
+import static android.content.Context.MODE_PRIVATE;
+
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.List;
@@ -12,24 +14,21 @@ import com.limelight.nvstream.http.NvApp;
 import com.limelight.nvstream.http.NvHTTP;
 import com.limelight.nvstream.http.PairingManager;
 import com.limelight.types.AppObject;
+import com.limelight.types.UnityPluginObject;
 import com.limelight.utils.CacheHelper;
 import com.limelight.utils.Dialog;
 import com.limelight.utils.ServerHelper;
-import com.limelight.utils.UiHelper;
 
 import android.app.Activity;
 import android.app.Service;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.SharedPreferences;
-import android.os.Bundle;
 import android.os.IBinder;
 
 import org.xmlpull.v1.XmlPullParserException;
 
-public class AppPlugin extends Activity {
-    private Activity mActivity;
+public class AppPlugin extends UnityPluginObject {
     private AppList m_AppList;
     private String uuidString;
     private ComputerDetails computer;
@@ -38,13 +37,8 @@ public class AppPlugin extends Activity {
     private int lastRunningAppId;
     private boolean suspendGridUpdates;
     private boolean inForeground;
-    public final static String HIDDEN_APPS_PREF_FILENAME = "HiddenApps";
-
     public final static String NAME_EXTRA = "Name";
     public final static String UUID_EXTRA = "UUID";
-    public final static String NEW_PAIR_EXTRA = "NewPair";
-    public final static String SHOW_HIDDEN_APPS_EXTRA = "ShowHiddenApps";
-
     private ComputerManagerService.ComputerManagerBinder managerBinder;
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder binder) {
@@ -93,6 +87,11 @@ public class AppPlugin extends Activity {
             managerBinder = null;
         }
     };
+
+    public AppPlugin(PluginMain p, Activity a, Intent i) {
+        super(p, a, i);
+        onCreate();
+    }
 
     private void startComputerUpdates() {
         // Don't start polling if we're not bound or in the foreground
@@ -187,23 +186,19 @@ public class AppPlugin extends Activity {
     }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        mActivity = this;
+    protected void onCreate() {
         // Assume we're in the foreground when created to avoid a race
         // between binding to CMS and onResume()
         inForeground = true;
 
         uuidString = getIntent().getStringExtra(UUID_EXTRA);
 
-        SharedPreferences hiddenAppsPrefs = getSharedPreferences(HIDDEN_APPS_PREF_FILENAME, MODE_PRIVATE);
-
         String computerName = getIntent().getStringExtra(NAME_EXTRA);
 
         LimeLog.todo("AppPlugin created for pc : " + computerName);
 
         // Bind to the computer manager service
-        bindService(new Intent(this, ComputerManagerService.class), serviceConnection,
+        bindService(new Intent(mActivity, ComputerManagerService.class), serviceConnection,
                 Service.BIND_AUTO_CREATE);
     }
 
@@ -228,8 +223,7 @@ public class AppPlugin extends Activity {
 
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
+    public void onDestroy() {
 
         Dialog.closeDialogs();
 
@@ -239,19 +233,14 @@ public class AppPlugin extends Activity {
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-
-        // Display a decoder crash notification if we've returned after a crash
-        UiHelper.showDecoderCrashDialog(this);
+    public void onResume() {
 
         inForeground = true;
         startComputerUpdates();
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
+    public void onPause() {
 
         inForeground = false;
         stopComputerUpdates();

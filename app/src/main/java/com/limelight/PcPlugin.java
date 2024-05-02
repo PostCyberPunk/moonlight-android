@@ -67,8 +67,8 @@ public class PcPlugin extends UnityPluginObject {
         }
     };
 
-    public PcPlugin(Activity a) {
-        super(a);
+    public PcPlugin(PluginMain p, Activity a) {
+        super(p, a);
         onCreate();
     }
 
@@ -78,14 +78,13 @@ public class PcPlugin extends UnityPluginObject {
         LimeLog.severe("PcPlugin onCreate2");
 
         // Bind to the computer manager service
-        mActivity.bindService(new Intent(mActivity, ComputerManagerService.class), serviceConnection,
+        bindService(new Intent(mActivity, ComputerManagerService.class), serviceConnection,
                 Service.BIND_AUTO_CREATE);
 
         pcList = new PcList();
 
         //TODO:move this to the main entry
 
-        PreferenceManager.setDefaultValues(mActivity, R.xml.preferences, false);
         //Try
         Handler h = new Handler();
         h.postDelayed(new Runnable() {
@@ -100,22 +99,17 @@ public class PcPlugin extends UnityPluginObject {
     public void onDestroy() {
 
         if (managerBinder != null) {
-            mActivity.unbindService(serviceConnection);
+            unbindService(serviceConnection);
         }
-        if (m_addComputerManually != null) {
-            m_addComputerManually.Destroy();
-            m_addComputerManually = null;
-        }
+        stopAddComputerManually();
     }
 
     @Override
     public void onResume() {
 
-        // Display a decoder crash notification if we've returned after a crash
-        UiHelper.showDecoderCrashDialog(mActivity);
-
         inForeground = true;
         startComputerUpdates();
+        stopAddComputerManually();
     }
 
     @Override
@@ -123,6 +117,7 @@ public class PcPlugin extends UnityPluginObject {
 
         inForeground = false;
         stopComputerUpdates(false);
+        stopAddComputerManually();
     }
 
     @Override
@@ -206,14 +201,7 @@ public class PcPlugin extends UnityPluginObject {
                 }
 
                 LimeLog.todo("Pairing complete");
-                mActivity.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        doAppList(computer, true, false);
-//                        startComputerUpdates();
-                        // TODO:If pairing was successful, open the app list,but pair maybe failed the first time
-                    }
-                });
+                doAppList(computer, true, false);
             }
         }).start();
     }
@@ -231,9 +219,8 @@ public class PcPlugin extends UnityPluginObject {
         Intent i = new Intent(mActivity, AppPlugin.class);
         i.putExtra(AppPlugin.NAME_EXTRA, computer.name);
         i.putExtra(AppPlugin.UUID_EXTRA, computer.uuid);
-        i.putExtra(AppPlugin.NEW_PAIR_EXTRA, newlyPaired);
-        i.putExtra(AppPlugin.SHOW_HIDDEN_APPS_EXTRA, showHiddenGames);
-        mActivity.startActivity(i);
+        mPluginMain.ActivateAppPlugin(i);
+        finish();
     }
 
     private void startComputerUpdates() {
@@ -245,13 +232,8 @@ public class PcPlugin extends UnityPluginObject {
                 @Override
                 public void notifyComputerUpdated(final ComputerDetails details) {
                     if (!freezeUpdates) {
-                        mActivity.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                LimeLog.severe("Computer updated: " + details.pairState);
-                                updateComputer(details);
-                            }
-                        });
+                        LimeLog.severe("Computer updated: " + details.pairState);
+                        updateComputer(details);
                     }
                 }
             });
@@ -301,9 +283,14 @@ public class PcPlugin extends UnityPluginObject {
         LimeLog.todo("Update the computer list view");
     }
 
+    public void stopAddComputerManually() {
+        if (m_addComputerManually != null) {
+            m_addComputerManually.Destroy();
+            m_addComputerManually = null;
+        }
+    }
+
     //Try
-
-
     private void fakeAdd() {
         m_addComputerManually = new AddComputerManually(mActivity, this);
     }

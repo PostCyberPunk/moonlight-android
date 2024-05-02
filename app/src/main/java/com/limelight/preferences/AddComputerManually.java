@@ -179,7 +179,6 @@ public class AddComputerManually {
             LimeLog.todo("Successfully added computer: " + rawUserInput);
             mPlugin.fakePair();
         }
-        Destroy();
     }
 
     private void startAddThread() {
@@ -194,6 +193,7 @@ public class AddComputerManually {
                         return;
                     }
                 }
+                finish();
             }
         };
         addThread.setName("UI - AddComputerManually");
@@ -225,9 +225,7 @@ public class AddComputerManually {
             mActivity.unbindService(serviceConnection);
         }
     }
-
     private final PcPlugin mPlugin;
-
     public AddComputerManually(Activity activity, PcPlugin plugin) {
         mActivity = activity;
         mPlugin = plugin;
@@ -236,5 +234,11 @@ public class AddComputerManually {
         // Bind to the ComputerManager service
         mActivity.bindService(new Intent(mActivity,
                 ComputerManagerService.class), serviceConnection, Service.BIND_AUTO_CREATE);
+    }
+    private void finish() {
+        if (mPlugin != null) {
+            mPlugin.stopAddComputerManually();
+        }
+
     }
 }
