@@ -139,6 +139,7 @@ public class PluginMain extends Activity {
             mGLSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 0, 0);
             mGLSurfaceView.setPreserveEGLContextOnPause(true);
             mGLSurfaceView.setBackgroundColor(0xff000000);
+            mActivity.addContentView(mRelativeLayout, new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
 
 //            mRelativeLayout.addView(mGLSurfaceView);
         });

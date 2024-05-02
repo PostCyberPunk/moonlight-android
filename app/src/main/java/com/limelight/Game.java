@@ -17,6 +17,7 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.RelativeLayout;
 
 import com.limelight.binding.PlatformBinding;
 import com.limelight.binding.audio.AndroidAudioRenderer;
@@ -98,7 +99,8 @@ public class Game extends UnityPluginObject implements SurfaceHolder.Callback,
             @Override
             public void run() {
                 streamView = new StreamView(mActivity);
-                mPluginMain.mRelativeLayout.addView(streamView);
+                mPluginMain.mRelativeLayout.addView(streamView, new RelativeLayout.LayoutParams(
+                        RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
             }
         });
 
