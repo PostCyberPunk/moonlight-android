@@ -3,8 +3,6 @@ package com.limelight.utils;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.GameManager;
-import android.app.GameState;
-import android.app.LocaleManager;
 import android.app.UiModeManager;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -30,16 +28,6 @@ public class UiHelper {
     private static final int TV_HORIZONTAL_PADDING_DP = 15;
 
     private static void setGameModeStatus(Context context, boolean streaming, boolean interruptible) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            GameManager gameManager = context.getSystemService(GameManager.class);
-
-            if (streaming) {
-                gameManager.setGameState(new GameState(false, interruptible ? GameState.MODE_GAMEPLAY_INTERRUPTIBLE : GameState.MODE_GAMEPLAY_UNINTERRUPTIBLE));
-            }
-            else {
-                gameManager.setGameState(new GameState(false, GameState.MODE_NONE));
-            }
-        }
     }
 
     public static void notifyStreamConnecting(Context context) {
@@ -66,13 +54,6 @@ public class UiHelper {
     {
         String locale = PreferenceConfiguration.readPreferences(activity).language;
         if (!locale.equals(PreferenceConfiguration.DEFAULT_LANGUAGE)) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                // On Android 13, migrate this non-default language setting into the OS native API
-                LocaleManager localeManager = activity.getSystemService(LocaleManager.class);
-                localeManager.setApplicationLocales(LocaleList.forLanguageTags(locale));
-                PreferenceConfiguration.completeLanguagePreferenceMigration(activity);
-            }
-            else {
                 Configuration config = new Configuration(activity.getResources().getConfiguration());
 
                 // Some locales include both language and country which must be separated
@@ -88,7 +69,6 @@ public class UiHelper {
                 }
 
                 activity.getResources().updateConfiguration(config, activity.getResources().getDisplayMetrics());
-            }
         }
     }
 

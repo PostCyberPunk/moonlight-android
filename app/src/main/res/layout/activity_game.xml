@@ -33,7 +33,6 @@
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:gravity="left"
         android:background="#80000000"
-        android:preferKeepClear="true"
         android:visibility="gone" />
 
     <TextView
@@ -47,7 +46,6 @@
         android:textAppearance="?android:attr/textAppearanceLarge"
         android:gravity="right"
         android:background="#80000000"
-        android:preferKeepClear="true"
         android:visibility="gone" />
 
 </merge>

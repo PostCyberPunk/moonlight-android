@@ -52,8 +52,6 @@
         android:icon="@mipmap/ic_launcher"
         android:installLocation="auto"
         android:gwpAsanMode="always"
-        android:localeConfig="@xml/locales_config"
-        android:enableOnBackInvokedCallback="false"
         android:theme="@style/AppTheme">
 
         <!-- Samsung multi-window support -->
@@ -82,7 +80,6 @@
             android:name=".PcPlugin"
             android:exported="true"
             android:resizeableActivity="true"
-            android:enableOnBackInvokedCallback="true"
             android:configChanges="mcc|mnc|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|layoutDirection">
 
             <meta-data android:name="WindowManagerPreference:FreeformWindowSize" android:value="system-default" />
@@ -100,7 +97,6 @@
         <activity
             android:name=".AppPlugin"
             android:resizeableActivity="true"
-            android:enableOnBackInvokedCallback="true"
             android:configChanges="mcc|mnc|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|layoutDirection">
             <meta-data android:name="WindowManagerPreference:FreeformWindowSize" android:value="system-default" />
             <meta-data android:name="WindowManagerPreference:FreeformWindowOrientation" android:value="landscape" />
@@ -108,7 +104,6 @@
         <activity
             android:name=".preferences.StreamSettings"
             android:resizeableActivity="true"
-            android:enableOnBackInvokedCallback="true"
             android:configChanges="mcc|mnc|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|layoutDirection"
             android:label="Streaming Settings">
             <meta-data android:name="WindowManagerPreference:FreeformWindowSize" android:value="system-default" />
@@ -120,7 +115,6 @@
             android:noHistory="true"
             android:supportsPictureInPicture="true"
             android:resizeableActivity="true"
-            android:enableOnBackInvokedCallback="false"
             android:launchMode="singleTask"
             android:excludeFromRecents="true"
             android:theme="@style/StreamTheme"
@@ -145,9 +139,9 @@
         <service
             android:name=".computers.ComputerManagerService"
             android:label="Computer Management Service" />
-        <service
-            android:name=".binding.input.driver.UsbDriverService"
-            android:label="Usb Driver Service" />
+<!--        <service-->
+<!--            android:name=".binding.input.driver.UsbDriverService"-->
+<!--            android:label="Usb Driver Service" />-->
 
     </application>
 

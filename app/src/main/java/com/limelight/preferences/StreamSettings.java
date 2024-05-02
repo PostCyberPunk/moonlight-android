@@ -107,7 +107,6 @@ public class StreamSettings extends Activity {
 
         // Language changes are handled via configuration changes in Android 13+,
         // so manual activity relaunching is no longer required.
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             PreferenceConfiguration newPrefs = PreferenceConfiguration.readPreferences(this);
             if (!newPrefs.language.equals(previousPrefs.language)) {
                 // Restart the PC view to apply UI changes
@@ -115,7 +114,6 @@ public class StreamSettings extends Activity {
 //                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
 //                startActivity(intent, null);
             }
-        }
     }
 
     public static class SettingsFragment extends PreferenceFragment {

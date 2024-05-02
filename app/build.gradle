@@ -3,13 +3,13 @@ apply plugin: 'com.android.application'
 android {
     ndkVersion "26.2.11394342"
 
-    compileSdk 34
+    compileSdk 32
 
     namespace 'com.limelight'
 
     defaultConfig {
         minSdk 21
-        targetSdk 34
+        targetSdk 32
 
         versionName "12.1.1"
         versionCode = 314
