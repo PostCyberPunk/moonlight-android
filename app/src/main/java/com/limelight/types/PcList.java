@@ -7,22 +7,22 @@ import java.util.Collections;
 import java.util.Comparator;
 
 public class PcList {
-    private final ArrayList<PcPlugin.ComputerObject> itemList = new ArrayList<>();
-    public void addComputer(PcPlugin.ComputerObject computer) {
+    private final ArrayList<ComputerObject> itemList = new ArrayList<>();
+    public void addComputer(ComputerObject computer) {
         itemList.add(computer);
         sortList();
     }
 
     private void sortList() {
-        Collections.sort(itemList, new Comparator<PcPlugin.ComputerObject>() {
+        Collections.sort(itemList, new Comparator<ComputerObject>() {
             @Override
-            public int compare(PcPlugin.ComputerObject lhs, PcPlugin.ComputerObject rhs) {
+            public int compare(ComputerObject lhs, ComputerObject rhs) {
                 return lhs.details.name.toLowerCase().compareTo(rhs.details.name.toLowerCase());
             }
         });
     }
 
-    public boolean removeComputer(PcPlugin.ComputerObject computer) {
+    public boolean removeComputer(ComputerObject computer) {
         return itemList.remove(computer);
     }
 
@@ -34,3 +34,4 @@ public class PcList {
         return itemList.size();
     }
 }
+

@@ -8,6 +8,7 @@ import com.limelight.binding.PlatformBinding;
 import com.limelight.binding.crypto.AndroidCryptoProvider;
 import com.limelight.computers.ComputerManagerListener;
 import com.limelight.computers.ComputerManagerService;
+import com.limelight.types.ComputerObject;
 import com.limelight.types.PcList;
 import com.limelight.nvstream.http.ComputerDetails;
 import com.limelight.nvstream.http.NvHTTP;
@@ -426,22 +427,6 @@ public class PcPlugin extends Activity {
         LimeLog.todo("Update the computer list view");
     }
 
-    public static class ComputerObject {
-        public ComputerDetails details;
-
-        public ComputerObject(ComputerDetails details) {
-            if (details == null) {
-                throw new IllegalArgumentException("details must not be null");
-            }
-            this.details = details;
-        }
-
-        @Override
-        public String toString() {
-            return details.name;
-        }
-    }
-
 
     //Try
     private void fakeAdd() {
@@ -452,7 +437,7 @@ public class PcPlugin extends Activity {
 
     private void fakePair() {
         LimeLog.severe("????");
-        PcPlugin.ComputerObject computer = (PcPlugin.ComputerObject) pcList.getItem(0);
+        ComputerObject computer = (ComputerObject) pcList.getItem(0);
         doPair(computer.details);
     }
 
@@ -460,7 +445,7 @@ public class PcPlugin extends Activity {
         if (pcList.getCount() == 0) {
             fakeAdd();
         } else {
-            PcPlugin.ComputerObject computer = (PcPlugin.ComputerObject) pcList.getItem(0);
+            ComputerObject computer = (ComputerObject) pcList.getItem(0);
             if (computer.details.pairState == PairState.NOT_PAIRED) {
                 fakePair();
             } else {
