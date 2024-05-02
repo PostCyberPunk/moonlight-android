@@ -15,6 +15,7 @@ import com.limelight.nvstream.http.NvHTTP;
 import com.limelight.nvstream.http.PairingManager;
 import com.limelight.nvstream.http.PairingManager.PairState;
 import com.limelight.preferences.AddComputerManually;
+import com.limelight.types.UnityPluginObject;
 import com.limelight.utils.Dialog;
 import com.limelight.utils.ServerHelper;
 import com.limelight.utils.UiHelper;
@@ -32,12 +33,11 @@ import android.preference.PreferenceManager;
 
 import org.xmlpull.v1.XmlPullParserException;
 
-public class PcPlugin extends Activity {
-    private Activity mActivity;
+public class PcPlugin extends UnityPluginObject {
     private AddComputerManually m_addComputerManually;
     private PcList pcList;
     private ComputerManagerService.ComputerManagerBinder managerBinder;
-    private boolean freezeUpdates, runningPolling, inForeground, completeOnCreateCalled;
+    private boolean freezeUpdates, runningPolling, inForeground,is;
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder binder) {
             final ComputerManagerService.ComputerManagerBinder localBinder =
@@ -67,62 +67,25 @@ public class PcPlugin extends Activity {
         }
     };
 
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-
-        // Only reinitialize views if completeOnCreate() was called
-        // before this callback. If it was not, completeOnCreate() will
-        // handle initializing views with the config change accounted for.
-        // This is not prone to races because both callbacks are invoked
-        // in the main thread.
-        if (completeOnCreateCalled) {
-            // Reinitialize views just in case orientation changed
-            initializeViews();
-        }
+    public PcPlugin(Activity a) {
+        super(a);
     }
 
-    private void initializeViews() {
-//        setContentView(R.layout.activity_pc_view);
-//
-//        UiHelper.notifyNewRootView(this);
+    @Override
+    protected void onCreate() {
+        inForeground = true;
+        LimeLog.severe("jjjjPlugin onCreate2");
 
-        // Allow floating expanded PiP overlays while browsing PCs
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-//            setShouldDockBigOverlays(false);
-//        }
+        // Bind to the computer manager service
+        mActivity.bindService(new Intent(mActivity, ComputerManagerService.class), serviceConnection,
+                Service.BIND_AUTO_CREATE);
 
-        // Set default preferences if we've never been run
-        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+        pcList = new PcList();
 
-        // Set the correct layout for the PC grid
-//        pcList.updateLayoutWithPreferences(this, PreferenceConfiguration.readPreferences(this));
+        //TODO:move this to the main entry
+        PreferenceManager.setDefaultValues(mActivity, R.xml.preferences, false);
 
-        // Setup the list view
-//        ImageButton settingsButton = findViewById(R.id.settingsButton);
-//        ImageButton addComputerButton = findViewById(R.id.manuallyAddPc);
-//        ImageButton helpButton = findViewById(R.id.helpButton);
-//
-//        settingsButton.setOnClickListener(new OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                startActivity(new Intent(PcPlugin.this, StreamSettings.class));
-//            }
-//        });
-//        addComputerButton.setOnClickListener(new OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                Intent i = new Intent(PcPlugin.this, AddComputerManually.class);
-//                startActivity(i);
-//            }
-//        });
-//        helpButton.setOnClickListener(new OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-////                HelpLauncher.launchSetupGuide(mActivity);
-//                //ShowComputerName
-//            }
-//        });
+        //Try
         Handler h = new Handler();
         h.postDelayed(new Runnable() {
             @Override
@@ -130,127 +93,13 @@ public class PcPlugin extends Activity {
                 fakeStart();
             }
         }, 1000);
-
-    }
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        //!!TRY:change this to unity
-        mActivity = this;
-        // Assume we're in the foreground when created to avoid a race
-        // between binding to CMS and onResume()
-        inForeground = true;
-        LimeLog.severe("jjjjPlugin onCreate2");
-
-        // Create a GLSurfaceView to fetch GLRenderer unless we have
-        // a cached result already.
-/*
-        final GlPreferences glPrefs = GlPreferences.readPreferences(this);
-        if (!glPrefs.savedFingerprint.equals(Build.FINGERPRINT) || glPrefs.glRenderer.isEmpty()) {
-            GLSurfaceView surfaceView = new GLSurfaceView(this);
-            surfaceView.setRenderer(new GLSurfaceView.Renderer() {
-                @Override
-                public void onSurfaceCreated(GL10 gl10, EGLConfig eglConfig) {
-                    // Save the GLRenderer string so we don't need to do this next time
-                    glPrefs.glRenderer = gl10.glGetString(GL10.GL_RENDERER);
-                    glPrefs.savedFingerprint = Build.FINGERPRINT;
-                    glPrefs.writePreferences();
-
-                    LimeLog.info("Fetched GL Renderer: " + glPrefs.glRenderer);
-
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            completeOnCreate();
-                        }
-                    });
-                }
-
-                @Override
-                public void onSurfaceChanged(GL10 gl10, int i, int i1) {
-                }
-
-                @Override
-                public void onDrawFrame(GL10 gl10) {
-                }
-            });
-//            setContentView(surfaceView);
-        } else {
-            LimeLog.info("Cached GL Renderer: " + glPrefs.glRenderer);
-            completeOnCreate();
-        }
-*/
-        completeOnCreate();
-    }
-
-    private void completeOnCreate() {
-        completeOnCreateCalled = true;
-
-
-//        UiHelper.setLocale(this);
-
-        // Bind to the computer manager service
-        bindService(new Intent(mActivity, ComputerManagerService.class), serviceConnection,
-                Service.BIND_AUTO_CREATE);
-
-        pcList = new PcList();
-
-        initializeViews();
-    }
-
-    private void startComputerUpdates() {
-        // Only allow polling to start if we're bound to CMS, polling is not already running,
-        // and our activity is in the foreground.
-        if (managerBinder != null && !runningPolling && inForeground) {
-            freezeUpdates = false;
-            managerBinder.startPolling(new ComputerManagerListener() {
-                @Override
-                public void notifyComputerUpdated(final ComputerDetails details) {
-                    if (!freezeUpdates) {
-                        mActivity.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                LimeLog.severe("Computer updated: " + details.pairState);
-                                updateComputer(details);
-                            }
-                        });
-
-                        // Add a launcher shortcut for this PC (off the main thread to prevent ANRs)
-//                        if (details.pairState == PairState.PAIRED) {
-//                            shortcutHelper.createAppViewShortcutForOnlineHost(details);
-//                        }
-                    }
-                }
-            });
-            runningPolling = true;
-        }
-    }
-
-    private void stopComputerUpdates(boolean wait) {
-        if (managerBinder != null) {
-            if (!runningPolling) {
-                return;
-            }
-
-            freezeUpdates = true;
-
-            managerBinder.stopPolling();
-
-            if (wait) {
-                managerBinder.waitForPollingStopped();
-            }
-
-            runningPolling = false;
-        }
     }
 
     @Override
     public void onDestroy() {
-        super.onDestroy();
 
         if (managerBinder != null) {
-            unbindService(serviceConnection);
+            mActivity.unbindService(serviceConnection);
         }
         if (m_addComputerManually != null) {
             m_addComputerManually.Destroy();
@@ -259,27 +108,24 @@ public class PcPlugin extends Activity {
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
+    public void onResume() {
 
         // Display a decoder crash notification if we've returned after a crash
-        UiHelper.showDecoderCrashDialog(this);
+        UiHelper.showDecoderCrashDialog(mActivity);
 
         inForeground = true;
         startComputerUpdates();
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
+    public void onPause() {
 
         inForeground = false;
         stopComputerUpdates(false);
     }
 
     @Override
-    protected void onStop() {
-        super.onStop();
+    public void onStop() {
 
         Dialog.closeDialogs();
     }
@@ -310,8 +156,10 @@ public class PcPlugin extends Activity {
                             PlatformBinding.getCryptoProvider(mActivity));
                     if (httpConn.getPairState() == PairState.PAIRED) {
                         // Don't display any toast, but open the app list
-                        message = null;
-                        success = true;
+                        //TODO:open the app list
+                        doAppList(computer, false, false);
+                        LimeLog.todo("Already paired");
+
                     } else {
                         final String pinStr = PairingManager.generatePinString();
 
@@ -323,19 +171,18 @@ public class PcPlugin extends Activity {
 
                         PairState pairState = pm.pair(httpConn.getServerInfo(true), pinStr);
                         if (pairState == PairState.PIN_WRONG) {
-                            message = getResources().getString(R.string.pair_incorrect_pin);
+                            LimeLog.todo("Pairing failed: Incorrect PIN");
                         } else if (pairState == PairState.FAILED) {
                             if (computer.runningGameId != 0) {
-                                message = getResources().getString(R.string.pair_pc_ingame);
+                                LimeLog.todo("Pairing failed: In-game");
                             } else {
-                                message = getResources().getString(R.string.pair_fail);
+                                LimeLog.todo("Pairing failed: Unknown reason");
                             }
                         } else if (pairState == PairState.ALREADY_IN_PROGRESS) {
-                            message = getResources().getString(R.string.pair_already_in_progress);
+                            LimeLog.todo("Pairing failed: Already in progress");
                         } else if (pairState == PairState.PAIRED) {
+                            LimeLog.todo("Pairing successful");
                             // Just navigate to the app view without displaying a toast
-                            message = null;
-                            success = true;
 
                             // Pin this certificate for later HTTPS use
                             managerBinder.getComputer(computer.uuid).serverCert = pm.getPairedCert();
@@ -345,42 +192,27 @@ public class PcPlugin extends Activity {
                             managerBinder.invalidateStateForComputer(computer.uuid);
                         } else {
                             // Should be no other values
-                            message = null;
+                            LimeLog.todo("Pairing failed: Unknown state");
                         }
                     }
                 } catch (UnknownHostException e) {
-                    message = getResources().getString(R.string.error_unknown_host);
+                    LimeLog.todo("Pairing failed: Unknown host");
                 } catch (FileNotFoundException e) {
-                    message = getResources().getString(R.string.error_404);
+                    LimeLog.todo("Pairing failed: File Not Found:"e.getMessage());
                 } catch (XmlPullParserException | IOException e) {
                     e.printStackTrace();
-                    message = e.getMessage();
+                    LimeLog.todo("Pairing failed: " + e.getMessage());
                 }
 
                 LimeLog.todo("Pairing complete");
-                final String toastMessage = message;
-                final boolean toastSuccess = success;
-
-//                startComputerUpdates();
                 mActivity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        startComputerUpdates();
+                        doAppList(computer, true, false);
+//                        startComputerUpdates();
+                        // TODO:If pairing was successful, open the app list,but pair maybe failed the first time
                     }
                 });
-//                runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        //TODO:?? how do we handle this?
-//                        if (toastSuccess) {
-//                            // Open the app list after a successful pairing attempt
-//                            doAppList(computer, true, false);
-//                        } else {
-//                            // Start polling again if we're still in the foreground
-//                            startComputerUpdates();
-//                        }
-//                    }
-//                });
             }
         }).start();
     }
@@ -395,12 +227,53 @@ public class PcPlugin extends Activity {
             return;
         }
 
-        Intent i = new Intent(this, AppPlugin.class);
+        Intent i = new Intent(mActivity, AppPlugin.class);
         i.putExtra(AppPlugin.NAME_EXTRA, computer.name);
         i.putExtra(AppPlugin.UUID_EXTRA, computer.uuid);
         i.putExtra(AppPlugin.NEW_PAIR_EXTRA, newlyPaired);
         i.putExtra(AppPlugin.SHOW_HIDDEN_APPS_EXTRA, showHiddenGames);
-        startActivity(i);
+        mActivity.startActivity(i);
+    }
+
+    private void startComputerUpdates() {
+        // Only allow polling to start if we're bound to CMS, polling is not already running,
+        // and our activity is in the foreground.
+        if (managerBinder != null && !runningPolling && inForeground) {
+            freezeUpdates = false;
+            managerBinder.startPolling(new ComputerManagerListener() {
+                @Override
+                public void notifyComputerUpdated(final ComputerDetails details) {
+                    if (!freezeUpdates) {
+                        mActivity.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                LimeLog.severe("Computer updated: " + details.pairState);
+                                updateComputer(details);
+                            }
+                        });
+                    }
+                }
+            });
+            runningPolling = true;
+        }
+    }
+
+    private void stopComputerUpdates(boolean wait) {
+        if (managerBinder != null) {
+            if (!runningPolling) {
+                return;
+            }
+
+            freezeUpdates = true;
+
+            managerBinder.stopPolling();
+
+            if (wait) {
+                managerBinder.waitForPollingStopped();
+            }
+
+            runningPolling = false;
+        }
     }
 
     private void updateComputer(ComputerDetails details) {
@@ -427,11 +300,8 @@ public class PcPlugin extends Activity {
         LimeLog.todo("Update the computer list view");
     }
 
-
     //Try
     private void fakeAdd() {
-//        Intent i = new Intent(mActivity, AddComputerManually.class);
-//        mActivity.startActivity(i);
         m_addComputerManually = new AddComputerManually(mActivity);
     }
 
