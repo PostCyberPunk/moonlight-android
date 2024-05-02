@@ -1,51 +1,36 @@
 package com.limelight.preferences;
 
-import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
-import java.net.SocketException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import com.limelight.binding.PlatformBinding;
+import com.limelight.LimeLog;
 import com.limelight.computers.ComputerManagerService;
-import com.limelight.R;
 import com.limelight.nvstream.http.ComputerDetails;
 import com.limelight.nvstream.http.NvHTTP;
 import com.limelight.nvstream.jni.MoonBridge;
-import com.limelight.utils.Dialog;
 import com.limelight.utils.ServerHelper;
-import com.limelight.utils.SpinnerDialog;
-import com.limelight.utils.UiHelper;
 
 import android.app.Activity;
 import android.app.Service;
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.os.Bundle;
 import android.os.IBinder;
-import android.view.KeyEvent;
-import android.view.View;
-import android.view.inputmethod.EditorInfo;
-import android.view.inputmethod.InputMethodManager;
-import android.widget.TextView;
-import android.widget.Toast;
 
-public class AddComputerManually extends Activity {
-    private TextView hostText;
+public class AddComputerManually {
+    private Activity mActivity;
     private ComputerManagerService.ComputerManagerBinder managerBinder;
     private final LinkedBlockingQueue<String> computersToAdd = new LinkedBlockingQueue<>();
     private Thread addThread;
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, final IBinder binder) {
-            managerBinder = ((ComputerManagerService.ComputerManagerBinder)binder);
+            managerBinder = ((ComputerManagerService.ComputerManagerBinder) binder);
             startAddThread();
         }
 
@@ -106,7 +91,8 @@ public class AddComputerManually extends Activity {
             if (uri.getHost() != null && !uri.getHost().isEmpty()) {
                 return uri;
             }
-        } catch (URISyntaxException ignored) {}
+        } catch (URISyntaxException ignored) {
+        }
 
         try {
             // Attempt to escape the input as an IPv6 literal.
@@ -115,7 +101,8 @@ public class AddComputerManually extends Activity {
             if (uri.getHost() != null && !uri.getHost().isEmpty()) {
                 return uri;
             }
-        } catch (URISyntaxException ignored) {}
+        } catch (URISyntaxException ignored) {
+        }
 
         return null;
     }
@@ -125,9 +112,6 @@ public class AddComputerManually extends Activity {
         boolean invalidInput = false;
         boolean success;
         int portTestResult;
-
-        SpinnerDialog dialog = SpinnerDialog.displayDialog(this, getResources().getString(R.string.title_add_pc),
-            getResources().getString(R.string.msg_add_pc), false);
 
         try {
             ComputerDetails details = new ComputerDetails();
@@ -145,7 +129,7 @@ public class AddComputerManually extends Activity {
 
                 details.manualAddress = new ComputerDetails.AddressTuple(host, port);
                 success = managerBinder.addComputerBlocking(details);
-                if (!success){
+                if (!success) {
                     wrongSiteLocal = isWrongSubnetSiteLocalAddress(host);
                 }
             } else {
@@ -155,7 +139,6 @@ public class AddComputerManually extends Activity {
             }
         } catch (InterruptedException e) {
             // Propagate the InterruptedException to the caller for proper handling
-            dialog.dismiss();
             throw e;
         } catch (IllegalArgumentException e) {
             // This can be thrown from OkHttp if the host fails to canonicalize to a valid name.
@@ -175,34 +158,28 @@ public class AddComputerManually extends Activity {
             portTestResult = MoonBridge.ML_TEST_RESULT_INCONCLUSIVE;
         }
 
-        dialog.dismiss();
 
         if (invalidInput) {
-            Dialog.displayDialog(this, getResources().getString(R.string.conn_error_title), getResources().getString(R.string.addpc_unknown_host), false);
-        }
-        else if (wrongSiteLocal) {
-            Dialog.displayDialog(this, getResources().getString(R.string.conn_error_title), getResources().getString(R.string.addpc_wrong_sitelocal), false);
-        }
-        else if (!success) {
+            LimeLog.todo("Invalid input: " + rawUserInput);
+        } else if (wrongSiteLocal) {
+            LimeLog.todo("Site-local address detected: " + rawUserInput);
+        } else if (!success) {
             String dialogText;
-            if (portTestResult != MoonBridge.ML_TEST_RESULT_INCONCLUSIVE && portTestResult != 0)  {
-                dialogText = getResources().getString(R.string.nettest_text_blocked);
+            if (portTestResult != MoonBridge.ML_TEST_RESULT_INCONCLUSIVE && portTestResult != 0) {
+                LimeLog.todo("Blocked address: " + rawUserInput + " (" + portTestResult + ")");
+            } else {
+                LimeLog.todo("Failed to add computer: " + rawUserInput);
             }
-            else {
-                dialogText = getResources().getString(R.string.addpc_fail);
-            }
-            Dialog.displayDialog(this, getResources().getString(R.string.conn_error_title), dialogText, false);
-        }
-        else {
-            AddComputerManually.this.runOnUiThread(new Runnable() {
+            LimeLog.todo("Port test result: " + portTestResult);
+        } else {
+            mActivity.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                Toast.makeText(AddComputerManually.this, getResources().getString(R.string.addpc_success), Toast.LENGTH_LONG).show();
+                    LimeLog.todo("Successfully added computer: " + rawUserInput);
 
-                if (!isFinishing()) {
                     // Close the activity
-                    AddComputerManually.this.finish();
-                }
+                    //DestoryMe here
+                    Destroy();
                 }
             });
         }
@@ -246,66 +223,20 @@ public class AddComputerManually extends Activity {
         }
     }
 
-    @Override
-    protected void onStop() {
-        super.onStop();
-
-        Dialog.closeDialogs();
-        SpinnerDialog.closeDialogs(this);
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-
+    public void Destroy() {
         if (managerBinder != null) {
             joinAddThread();
-            unbindService(serviceConnection);
+            mActivity.unbindService(serviceConnection);
         }
     }
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    public AddComputerManually(Activity activity) {
+        mActivity = activity;
 
-//        UiHelper.setLocale(this);
-//
-//        setContentView(R.layout.activity_add_computer_manually);
-//
-//        UiHelper.notifyNewRootView(this);
-//
-//        this.hostText = findViewById(R.id.hostTextView);
-//        hostText.setImeOptions(EditorInfo.IME_ACTION_DONE);
-//        hostText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-//            @Override
-//            public boolean onEditorAction(TextView textView, int actionId, KeyEvent keyEvent) {
-//                if (actionId == EditorInfo.IME_ACTION_DONE ||
-//                        (keyEvent != null &&
-//                                keyEvent.getAction() == KeyEvent.ACTION_DOWN &&
-//                                keyEvent.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
-//                    return handleDoneEvent();
-//                }
-//                else if (actionId == EditorInfo.IME_ACTION_PREVIOUS) {
-//                    // This is how the Fire TV dismisses the keyboard
-//                    InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-//                    imm.hideSoftInputFromWindow(hostText.getWindowToken(), 0);
-//                    return false;
-//                }
-//
-//                return false;
-//            }
-//        });
-//
-//        findViewById(R.id.addPcButton).setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                handleDoneEvent();
-//            }
-//        });
-
+        //TRY:fix ip
         computersToAdd.add("192.168.123.192");
         // Bind to the ComputerManager service
-        bindService(new Intent(AddComputerManually.this,
-                    ComputerManagerService.class), serviceConnection, Service.BIND_AUTO_CREATE);
+        mActivity.bindService(new Intent(mActivity,
+                ComputerManagerService.class), serviceConnection, Service.BIND_AUTO_CREATE);
     }
 }

@@ -33,6 +33,7 @@ import org.xmlpull.v1.XmlPullParserException;
 
 public class PcPlugin extends Activity {
     private Activity mActivity;
+    private AddComputerManually m_addComputerManually;
     private PcList pcList;
     private ComputerManagerService.ComputerManagerBinder managerBinder;
     private boolean freezeUpdates, runningPolling, inForeground, completeOnCreateCalled;
@@ -179,7 +180,7 @@ public class PcPlugin extends Activity {
             completeOnCreate();
         }
 */
-            completeOnCreate();
+        completeOnCreate();
     }
 
     private void completeOnCreate() {
@@ -249,6 +250,10 @@ public class PcPlugin extends Activity {
 
         if (managerBinder != null) {
             unbindService(serviceConnection);
+        }
+        if (m_addComputerManually != null) {
+            m_addComputerManually.Destroy();
+            m_addComputerManually = null;
         }
     }
 
@@ -355,7 +360,13 @@ public class PcPlugin extends Activity {
                 final String toastMessage = message;
                 final boolean toastSuccess = success;
 
-                startComputerUpdates();
+//                startComputerUpdates();
+                mActivity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        startComputerUpdates();
+                    }
+                });
 //                runOnUiThread(new Runnable() {
 //                    @Override
 //                    public void run() {
@@ -434,8 +445,9 @@ public class PcPlugin extends Activity {
 
     //Try
     private void fakeAdd() {
-        Intent i = new Intent(mActivity, AddComputerManually.class);
-        mActivity.startActivity(i);
+//        Intent i = new Intent(mActivity, AddComputerManually.class);
+//        mActivity.startActivity(i);
+        m_addComputerManually = new AddComputerManually(mActivity);
     }
 
     private void fakePair() {
