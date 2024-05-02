@@ -69,12 +69,13 @@ public class PcPlugin extends UnityPluginObject {
 
     public PcPlugin(Activity a) {
         super(a);
+        onCreate();
     }
 
     @Override
     protected void onCreate() {
         inForeground = true;
-        LimeLog.severe("jjjjPlugin onCreate2");
+        LimeLog.severe("PcPlugin onCreate2");
 
         // Bind to the computer manager service
         mActivity.bindService(new Intent(mActivity, ComputerManagerService.class), serviceConnection,
@@ -83,8 +84,8 @@ public class PcPlugin extends UnityPluginObject {
         pcList = new PcList();
 
         //TODO:move this to the main entry
-        PreferenceManager.setDefaultValues(mActivity, R.xml.preferences, false);
 
+        PreferenceManager.setDefaultValues(mActivity, R.xml.preferences, false);
         //Try
         Handler h = new Handler();
         h.postDelayed(new Runnable() {
@@ -104,10 +105,6 @@ public class PcPlugin extends UnityPluginObject {
         if (m_addComputerManually != null) {
             m_addComputerManually.Destroy();
             m_addComputerManually = null;
-        }
-        if (waitAddPc != null) {
-            waitAddPc.interrupt();
-            waitAddPc = null;
         }
     }
 

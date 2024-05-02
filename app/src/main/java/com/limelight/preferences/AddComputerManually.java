@@ -176,7 +176,6 @@ public class AddComputerManually {
             LimeLog.todo("Seems sucess?" + rawUserInput);
         }
         if (success) {
-            isSuccess = true;
             LimeLog.todo("Successfully added computer: " + rawUserInput);
             mPlugin.fakePair();
         }
@@ -227,7 +226,7 @@ public class AddComputerManually {
         }
     }
 
-    private PcPlugin mPlugin;
+    private final PcPlugin mPlugin;
 
     public AddComputerManually(Activity activity, PcPlugin plugin) {
         mActivity = activity;
