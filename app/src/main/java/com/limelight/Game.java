@@ -15,7 +15,6 @@ import android.view.Display;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.View;
-import android.view.View.OnSystemUiVisibilityChangeListener;
 import android.view.WindowManager;
 import android.widget.Toast;
 
@@ -35,9 +34,7 @@ import com.limelight.nvstream.jni.MoonBridge;
 import com.limelight.preferences.GlPreferences;
 import com.limelight.preferences.PreferenceConfiguration;
 import com.limelight.ui.StreamView;
-import com.limelight.utils.Dialog;
 import com.limelight.utils.ServerHelper;
-import com.limelight.utils.SpinnerDialog;
 import com.limelight.utils.UiHelper;
 
 import java.io.ByteArrayInputStream;
@@ -48,11 +45,10 @@ import java.util.Locale;
 
 
 public class Game extends Activity implements SurfaceHolder.Callback,
-NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
+        NvConnectionListener, PerfOverlayListener {
     private PreferenceConfiguration prefConfig;
     private SharedPreferences tombstonePrefs;
     private NvConnection conn;
-    private SpinnerDialog spinner;
     private boolean displayedFailureDialog = false;
     private boolean connecting = false;
     private boolean connected = false;
@@ -174,8 +170,7 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
                     // Nope, no HDR for us :(
                     Toast.makeText(this, "Display does not support HDR10", Toast.LENGTH_LONG).show();
                 }
-            }
-            else {
+            } else {
                 Toast.makeText(this, "HDR requires Android 7.0 or later", Toast.LENGTH_LONG).show();
             }
         }
@@ -238,7 +233,7 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
 
         // Set to the optimal mode for streaming
         float displayRefreshRate = prepareDisplayForRendering();
-        LimeLog.info("Display refresh rate: "+displayRefreshRate);
+        LimeLog.info("Display refresh rate: " + displayRefreshRate);
 
         // If the user requested frame pacing using a capped FPS, we will need to change our
         // desired FPS setting here in accordance with the active display refresh rate.
@@ -254,8 +249,7 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
                     // Let's avoid clearly bogus refresh rates and fall back to legacy rendering
                     prefConfig.framePacing = PreferenceConfiguration.FRAME_PACING_BALANCED;
                     LimeLog.info("Bogus refresh rate: " + roundedRefreshRate);
-                }
-                else {
+                } else {
                     chosenFrameRate = roundedRefreshRate - 1;
                     LimeLog.info("Adjusting FPS target for screen to " + chosenFrameRate);
                 }
@@ -273,7 +267,7 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
                 .setMaxPacketSize(1392)
                 .setRemoteConfiguration(StreamConfiguration.STREAM_CFG_AUTO) // NvConnection will perform LAN and VPN detection
                 .setSupportedVideoFormats(supportedVideoFormats)
-                .setClientRefreshRateX100((int)(displayRefreshRate * 100))
+                .setClientRefreshRateX100((int) (displayRefreshRate * 100))
                 .setAudioConfiguration(prefConfig.audioConfiguration)
                 .setColorSpace(decoderRenderer.getPreferredColorSpace())
                 .setColorRange(decoderRenderer.getPreferredColorRange())
@@ -287,14 +281,8 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
                 PlatformBinding.getCryptoProvider(this), serverCert);
 
         if (!decoderRenderer.isAvcSupported()) {
-            if (spinner != null) {
-                spinner.dismiss();
-                spinner = null;
-            }
-
             // If we can't find an AVC decoder, we can't proceed
-            Dialog.displayDialog(this, getResources().getString(R.string.conn_error_title),
-                    "This device or ROM doesn't support hardware accelerated H.264 playback.", true);
+            LimeLog.todo("This device or ROM doesn't support hardware accelerated H.264 playback.");
             return;
         }
 
@@ -351,8 +339,8 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
             boolean refreshRateIsGood = isRefreshRateGoodMatch(bestMode.getRefreshRate());
             boolean refreshRateIsEqual = isRefreshRateEqualMatch(bestMode.getRefreshRate());
 
-            LimeLog.info("Current display mode: "+bestMode.getPhysicalWidth()+"x"+
-                    bestMode.getPhysicalHeight()+"x"+bestMode.getRefreshRate());
+            LimeLog.info("Current display mode: " + bestMode.getPhysicalWidth() + "x" +
+                    bestMode.getPhysicalHeight() + "x" + bestMode.getRefreshRate());
 
             for (Display.Mode candidate : display.getSupportedModes()) {
                 boolean refreshRateReduced = candidate.getRefreshRate() < bestMode.getRefreshRate();
@@ -361,8 +349,8 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
                 boolean resolutionFitsStream = candidate.getPhysicalWidth() >= prefConfig.width &&
                         candidate.getPhysicalHeight() >= prefConfig.height;
 
-                LimeLog.info("Examining display mode: "+candidate.getPhysicalWidth()+"x"+
-                        candidate.getPhysicalHeight()+"x"+candidate.getRefreshRate());
+                LimeLog.info("Examining display mode: " + candidate.getPhysicalWidth() + "x" +
+                        candidate.getPhysicalHeight() + "x" + candidate.getRefreshRate());
 
                 if (candidate.getPhysicalWidth() > 4096 && prefConfig.width <= 4096) {
                     // Avoid resolutions options above 4K to be safe
@@ -390,8 +378,7 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
                     // mode, we want to always prefer the highest frame rate even though it may cause
                     // microstuttering.
                     continue;
-                }
-                else if (refreshRateIsGood) {
+                } else if (refreshRateIsGood) {
                     // We've already got a good match, so if this one isn't also good, it's not
                     // worth considering at all.
                     if (!isRefreshRateGoodMatch(candidate.getRefreshRate())) {
@@ -404,16 +391,14 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
                         if (candidate.getRefreshRate() > bestMode.getRefreshRate()) {
                             continue;
                         }
-                    }
-                    else {
+                    } else {
                         // User asked for the highest possible refresh rate, so don't reduce it if we
                         // have a good match already
                         if (refreshRateReduced) {
                             continue;
                         }
                     }
-                }
-                else if (!isRefreshRateGoodMatch(candidate.getRefreshRate())) {
+                } else if (!isRefreshRateGoodMatch(candidate.getRefreshRate())) {
                     // We didn't have a good match and this match isn't good either, so just don't
                     // reduce the refresh rate.
                     if (refreshRateReduced) {
@@ -431,8 +416,8 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
                 refreshRateIsEqual = isRefreshRateEqualMatch(candidate.getRefreshRate());
             }
 
-            LimeLog.info("Best display mode: "+bestMode.getPhysicalWidth()+"x"+
-                    bestMode.getPhysicalHeight()+"x"+bestMode.getRefreshRate());
+            LimeLog.info("Best display mode: " + bestMode.getPhysicalWidth() + "x" +
+                    bestMode.getPhysicalHeight() + "x" + bestMode.getRefreshRate());
 
             // Only apply new window layout parameters if we've actually changed the display mode
             if (display.getMode().getModeId() != bestMode.getModeId()) {
@@ -445,12 +430,10 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
                     // Apply the display mode change
                     windowLayoutParams.preferredDisplayModeId = bestMode.getModeId();
                     getWindow().setAttributes(windowLayoutParams);
-                }
-                else {
+                } else {
                     LimeLog.info("Using setFrameRate() instead of preferredDisplayModeId due to matching resolution");
                 }
-            }
-            else {
+            } else {
                 LimeLog.info("Current display mode is already the best display mode");
             }
 
@@ -460,7 +443,7 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
         else {
             float bestRefreshRate = display.getRefreshRate();
             for (float candidate : display.getSupportedRefreshRates()) {
-                LimeLog.info("Examining refresh rate: "+candidate);
+                LimeLog.info("Examining refresh rate: " + candidate);
 
                 if (candidate > bestRefreshRate) {
                     // Ensure the frame rate stays around 60 Hz for <= 60 FPS streams
@@ -474,7 +457,7 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
                 }
             }
 
-            LimeLog.info("Selected refresh rate: "+bestRefreshRate);
+            LimeLog.info("Selected refresh rate: " + bestRefreshRate);
             windowLayoutParams.preferredRefreshRate = bestRefreshRate;
             displayRefreshRate = bestRefreshRate;
 
@@ -494,8 +477,8 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
             Point screenSize = new Point(0, 0);
             display.getSize(screenSize);
 
-            double screenAspectRatio = ((double)screenSize.y) / screenSize.x;
-            double streamAspectRatio = ((double)prefConfig.height) / prefConfig.width;
+            double screenAspectRatio = ((double) screenSize.y) / screenSize.x;
+            double streamAspectRatio = ((double) prefConfig.height) / prefConfig.width;
             if (Math.abs(screenAspectRatio - streamAspectRatio) < 0.001) {
                 LimeLog.info("Stream has compatible aspect ratio with output display");
                 aspectRatioMatch = true;
@@ -505,10 +488,9 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
         if (prefConfig.stretchVideo || aspectRatioMatch) {
             // Set the surface to the size of the video
             streamView.getHolder().setFixedSize(prefConfig.width, prefConfig.height);
-        }
-        else {
+        } else {
             // Set the surface to scale based on the aspect ratio of the stream
-            streamView.setDesiredAspectRatio((double)prefConfig.width / (double)prefConfig.height);
+            streamView.setDesiredAspectRatio((double) prefConfig.width / (double) prefConfig.height);
         }
 
         // Set the desired refresh rate that will get passed into setFrameRate() later
@@ -520,8 +502,7 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
             // it will be eventually activated.
             // TODO: Improve this
             return displayRefreshRate;
-        }
-        else {
+        } else {
             // Use the lower of the current refresh rate and the selected refresh rate.
             // The preferred refresh rate may not actually be applied (ex: Battery Saver mode).
             return Math.min(getWindowManager().getDefaultDisplay().getRefreshRate(), displayRefreshRate);
@@ -530,28 +511,27 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
 
     @SuppressLint("InlinedApi")
     private final Runnable hideSystemUi = new Runnable() {
-            @Override
-            public void run() {
-                // TODO: Do we want to use WindowInsetsController here on R+ instead of
-                // SYSTEM_UI_FLAG_IMMERSIVE_STICKY? They seem to do the same thing as of S...
+        @Override
+        public void run() {
+            // TODO: Do we want to use WindowInsetsController here on R+ instead of
+            // SYSTEM_UI_FLAG_IMMERSIVE_STICKY? They seem to do the same thing as of S...
 
-                // In multi-window mode on N+, we need to drop our layout flags or we'll
-                // be drawing underneath the system UI.
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInMultiWindowMode()) {
-                    Game.this.getWindow().getDecorView().setSystemUiVisibility(
-                            View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-                }
-                else {
-                    // Use immersive mode
-                    Game.this.getWindow().getDecorView().setSystemUiVisibility(
-                            View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
-                            View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
-                            View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-                            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
-                            View.SYSTEM_UI_FLAG_FULLSCREEN |
-                            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
-                }
+            // In multi-window mode on N+, we need to drop our layout flags or we'll
+            // be drawing underneath the system UI.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInMultiWindowMode()) {
+                Game.this.getWindow().getDecorView().setSystemUiVisibility(
+                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            } else {
+                // Use immersive mode
+                Game.this.getWindow().getDecorView().setSystemUiVisibility(
+                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
+                                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                                View.SYSTEM_UI_FLAG_FULLSCREEN |
+                                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
             }
+        }
     };
 
     @Override
@@ -566,6 +546,7 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
             highPerfWifiLock.release();
         }
     }
+
     @Override
     protected void onPause() {
         if (isFinishing()) {
@@ -580,10 +561,6 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
     protected void onStop() {
         super.onStop();
 
-        SpinnerDialog.closeDialogs(this);
-        Dialog.closeDialogs();
-
-
 
         if (conn != null) {
             int videoFormat = decoderRenderer.getActiveVideoFormat();
@@ -596,13 +573,12 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
                 int averageDecoderLat = decoderRenderer.getAverageDecoderLatency();
                 String message = null;
                 if (averageEndToEndLat > 0) {
-                    message = getResources().getString(R.string.conn_client_latency)+" "+averageEndToEndLat+" ms";
+                    message = getResources().getString(R.string.conn_client_latency) + " " + averageEndToEndLat + " ms";
                     if (averageDecoderLat > 0) {
-                        message += " ("+getResources().getString(R.string.conn_client_latency_hw)+" "+averageDecoderLat+" ms)";
+                        message += " (" + getResources().getString(R.string.conn_client_latency_hw) + " " + averageDecoderLat + " ms)";
                     }
-                }
-                else if (averageDecoderLat > 0) {
-                    message = getResources().getString(R.string.conn_hardware_latency)+" "+averageDecoderLat+" ms";
+                } else if (averageDecoderLat > 0) {
+                    message = getResources().getString(R.string.conn_hardware_latency) + " " + averageDecoderLat + " ms";
                 }
 
                 // Add the video codec to the post-stream toast
@@ -611,14 +587,11 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
 
                     if ((videoFormat & MoonBridge.VIDEO_FORMAT_MASK_H264) != 0) {
                         message += "H.264";
-                    }
-                    else if ((videoFormat & MoonBridge.VIDEO_FORMAT_MASK_H265) != 0) {
+                    } else if ((videoFormat & MoonBridge.VIDEO_FORMAT_MASK_H265) != 0) {
                         message += "HEVC";
-                    }
-                    else if ((videoFormat & MoonBridge.VIDEO_FORMAT_MASK_AV1) != 0) {
+                    } else if ((videoFormat & MoonBridge.VIDEO_FORMAT_MASK_AV1) != 0) {
                         message += "AV1";
-                    }
-                    else {
+                    } else {
                         message += "UNKNOWN";
                     }
 
@@ -703,18 +676,18 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
                         Toast.makeText(Game.this, getResources().getText(R.string.video_decoder_init_failed), Toast.LENGTH_LONG).show();
                     }
 
-                    String dialogText = getResources().getString(R.string.conn_error_msg) + " " + stage +" (error "+errorCode+")";
+                    String dialogText = getResources().getString(R.string.conn_error_msg) + " " + stage + " (error " + errorCode + ")";
 
                     if (portFlags != 0) {
                         dialogText += "\n\n" + getResources().getString(R.string.check_ports_msg) + "\n" +
                                 MoonBridge.stringifyPortFlags(portFlags, "\n");
                     }
 
-                    if (portTestResult != MoonBridge.ML_TEST_RESULT_INCONCLUSIVE && portTestResult != 0)  {
+                    if (portTestResult != MoonBridge.ML_TEST_RESULT_INCONCLUSIVE && portTestResult != 0) {
                         dialogText += "\n\n" + getResources().getString(R.string.nettest_text_blocked);
                     }
 
-                    Dialog.displayDialog(Game.this, getResources().getString(R.string.conn_error_title), dialogText, true);
+                    LimeLog.todo("COnnection failed:" + dialogText);
                 }
             }
         });
@@ -725,7 +698,7 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
         // Perform a connection test if the failure could be due to a blocked port
         // This does network I/O, so don't do it on the main thread.
         final int portFlags = MoonBridge.getPortFlagsFromTerminationErrorCode(errorCode);
-        final int portTestResult = MoonBridge.testClientConnectivity(ServerHelper.CONNECTION_TEST_SERVER,443, portFlags);
+        final int portTestResult = MoonBridge.testClientConnectivity(ServerHelper.CONNECTION_TEST_SERVER, 443, portFlags);
 
         runOnUiThread(new Runnable() {
             @Override
@@ -744,8 +717,7 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
                         if (portTestResult != MoonBridge.ML_TEST_RESULT_INCONCLUSIVE && portTestResult != 0) {
                             // If we got a blocked result, that supersedes any other error message
                             message = getResources().getString(R.string.nettest_text_blocked);
-                        }
-                        else {
+                        } else {
                             switch (errorCode) {
                                 case MoonBridge.ML_ERROR_NO_VIDEO_TRAFFIC:
                                     message = getResources().getString(R.string.no_video_received_error);
@@ -769,8 +741,7 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
                                     // We'll assume large errors are hex values
                                     if (Math.abs(errorCode) > 1000) {
                                         errorCodeString = Integer.toHexString(errorCode);
-                                    }
-                                    else {
+                                    } else {
                                         errorCodeString = Integer.toString(errorCode);
                                     }
                                     message = getResources().getString(R.string.conn_terminated_msg) + "\n\n" +
@@ -783,11 +754,8 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
                             message += "\n\n" + getResources().getString(R.string.check_ports_msg) + "\n" +
                                     MoonBridge.stringifyPortFlags(portFlags, "\n");
                         }
-
-                        Dialog.displayDialog(Game.this, getResources().getString(R.string.conn_terminated_title),
-                                message, true);
-                    }
-                    else {
+                        LimeLog.todo("Connection terminated: " + message);
+                    } else {
                         finish();
                     }
                 }
@@ -808,14 +776,12 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
                     if (prefConfig.bitrate > 5000) {
                         LimeLog.info("Slow connection");
 //                        notificationOverlayView.setText(getResources().getString(R.string.slow_connection_msg));
-                    }
-                    else {
+                    } else {
 //                        notificationOverlayView.setText(getResources().getString(R.string.poor_connection_msg));
                         LimeLog.info("Poor connection");
                     }
 //                    requestedNotificationOverlayVisibility = View.VISIBLE;
-                }
-                else if (connectionStatus == MoonBridge.CONN_STATUS_OKAY) {
+                } else if (connectionStatus == MoonBridge.CONN_STATUS_OKAY) {
                     LimeLog.info("Connection okay");
 //                    requestedNotificationOverlayVisibility = View.GONE;
                 }
@@ -882,8 +848,7 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
         // a display that maxes out at 50 Hz).
         if (mayReduceRefreshRate() || desiredRefreshRate < prefConfig.fps) {
             desiredFrameRate = prefConfig.fps;
-        }
-        else {
+        } else {
             // Otherwise, we will pretend that our frame rate matches the refresh rate we picked in
             // prepareDisplayForRendering(). This will usually be the highest refresh rate that our
             // frame rate evenly divides into, which ensures the lowest possible display latency.
@@ -898,8 +863,7 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
             holder.getSurface().setFrameRate(desiredFrameRate,
                     Surface.FRAME_RATE_COMPATIBILITY_FIXED_SOURCE,
                     Surface.CHANGE_FRAME_RATE_ALWAYS);
-        }
-        else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             holder.getSurface().setFrameRate(desiredFrameRate,
                     Surface.FRAME_RATE_COMPATIBILITY_FIXED_SOURCE);
         }
@@ -923,49 +887,35 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
 
     @Override
     public void displayMessage(final String message) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(Game.this, message, Toast.LENGTH_LONG).show();
-            }
-        });
+        LimeLog.todo("NVConn: " + message);
     }
 
     @Override
     public void displayTransientMessage(final String message) {
-        if (!prefConfig.disableWarnings) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(Game.this, message, Toast.LENGTH_LONG).show();
-                }
-            });
-        }
+        LimeLog.todo("NVConn: " + message);
     }
 
     @Override
     public void onPerfUpdate(final String text) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-            }
-        });
+        LimeLog.todo("Perfomance Debug: " + text);
     }
+
     @Override
     public void setHdrMode(boolean enabled, byte[] hdrMetadata) {
         LimeLog.info("Display HDR mode: " + (enabled ? "enabled" : "disabled"));
         decoderRenderer.setHdrMode(enabled, hdrMetadata);
     }
+
     @Override
     public void rumble(short controllerNumber, short lowFreqMotor, short highFreqMotor) {
-        LimeLog.info(String.format((Locale)null, "Rumble on gamepad %d: %04x %04x", controllerNumber, lowFreqMotor, highFreqMotor));
+        LimeLog.info(String.format((Locale) null, "Rumble on gamepad %d: %04x %04x", controllerNumber, lowFreqMotor, highFreqMotor));
 
 
     }
 
     @Override
     public void rumbleTriggers(short controllerNumber, short leftTrigger, short rightTrigger) {
-        LimeLog.info(String.format((Locale)null, "Rumble on gamepad triggers %d: %04x %04x", controllerNumber, leftTrigger, rightTrigger));
+        LimeLog.info(String.format((Locale) null, "Rumble on gamepad triggers %d: %04x %04x", controllerNumber, leftTrigger, rightTrigger));
 
 
     }
@@ -979,12 +929,9 @@ NvConnectionListener, OnSystemUiVisibilityChangeListener,PerfOverlayListener{
     public void setControllerLED(short controllerNumber, byte r, byte g, byte b) {
 
     }
+
     @Override
     public void onPointerCaptureChanged(boolean hasCapture) {
         super.onPointerCaptureChanged(hasCapture);
-    }
-    @Override
-    public void onSystemUiVisibilityChange(int visibility) {
-
     }
 }
