@@ -57,11 +57,9 @@ public class StreamSettings extends Activity {
 
         previousPrefs = PreferenceConfiguration.readPreferences(this);
 
-        UiHelper.setLocale(this);
 
         setContentView(R.layout.activity_stream_settings);
 
-        UiHelper.notifyNewRootView(this);
     }
 
     @Override
@@ -261,7 +259,6 @@ public class StreamSettings extends Activity {
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
             View view = super.onCreateView(inflater, container, savedInstanceState);
-            UiHelper.applyStatusBarPadding(view);
             return view;
         }
 
